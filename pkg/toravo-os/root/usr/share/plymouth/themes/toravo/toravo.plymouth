@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Toravo OS
+Description=Toravo OS – T-Logo, TORAVO/OS-Wortmarke, violetter Glow, Wellenform-Fortschritt
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/toravo
+ScriptFile=/usr/share/plymouth/themes/toravo/toravo.script

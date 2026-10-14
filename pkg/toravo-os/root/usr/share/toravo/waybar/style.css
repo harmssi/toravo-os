@@ -1,0 +1,23 @@
+/* Toravo OS waybar – tokens from brand/tokens.css */
+* { font-family: "Inter", "Symbols Nerd Font", sans-serif; font-size: 12px; min-height: 0; border: none; border-radius: 0; }
+window#waybar { background: rgba(7, 7, 13, 0.92); color: #a9a8bd; border-bottom: 1px solid #24213a; }
+tooltip { background: #12111c; border: 1px solid #24213a; border-radius: 10px; }
+tooltip label { color: #f2f2f7; padding: 2px 4px; }
+#custom-logo { color: #f2f2f7; padding: 0 18px 0 16px; font-size: 11px; }
+#workspaces { margin-left: 4px; }
+#workspaces button { color: #6c6a85; padding: 0 7px; background: transparent; font-family: "JetBrains Mono"; font-size: 11px; box-shadow: none; }
+#workspaces button.active { color: #f2f2f7; box-shadow: inset 0 -2px 0 #8a5cf6; }
+#workspaces button:hover { background: #12111c; color: #f2f2f7; }
+#window { color: #6c6a85; font-size: 11px; }
+#custom-gpu, #custom-queue, #custom-live, #custom-install, #pulseaudio, #network, #clock, #custom-power { padding: 0 10px; color: #a9a8bd; }
+#custom-gpu { font-family: "JetBrains Mono"; font-size: 11px; color: #a9a8bd; }
+#custom-gpu.hot { color: #d8806a; }
+#custom-queue { font-family: "JetBrains Mono"; font-size: 11px; color: #5ab0d0; }
+#custom-queue.idle { color: #6c6a85; }
+#custom-live { color: #e5484d; font-weight: 700; letter-spacing: 2px; font-size: 10px; }
+#custom-live.off { color: #6c6a85; font-weight: 500; }
+#custom-install { color: #ffffff; margin: 4px 6px; padding: 0 14px; border-radius: 8px; font-weight: 700;
+  background: linear-gradient(90deg, #8a5cf6 0%, #6f9be0 55%, #5ab0d0 100%); }
+#clock { color: #f2f2f7; font-weight: 600; font-family: "Inter"; padding-right: 8px; }
+#custom-power { padding-right: 16px; color: #6c6a85; }
+#custom-power:hover { color: #d8806a; }

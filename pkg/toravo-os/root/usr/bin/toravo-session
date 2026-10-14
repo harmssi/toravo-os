@@ -1,0 +1,33 @@
+#!/bin/bash
+# Toravo OS session launcher (greetd / ReGreet -> "Toravo OS").
+# Full Hyprland when the GPU has 3D acceleration, Lite Hyprland (no blur/shadows/animations) without,
+# and the labwc fallback session when Hyprland cannot start at all (very old GPU, some VMs).
+mode="${1:-auto}"
+export XDG_SESSION_TYPE=wayland
+/usr/bin/toravo-user-init
+state="${XDG_STATE_HOME:-$HOME/.local/state}/toravo"; mkdir -p "$state"
+PYTHONPATH=/usr/lib/toravo timeout 15 python3 -m toravo.hw --json > "$state/hw.json.tmp" 2>/dev/null && mv -f "$state/hw.json.tmp" "$state/hw.json"
+lite=0
+grep -q '"lite": true' "$state/hw.json" 2>/dev/null && lite=1
+[ -f "$HOME/.config/toravo/force-lite" ] && lite=1
+grep -qw 'toravo.lite' /proc/cmdline && lite=1
+if [ "$lite" = 1 ]; then
+    export TORAVO_LITE=1 LIBGL_ALWAYS_SOFTWARE=1 GSK_RENDERER=cairo WLR_RENDERER_ALLOW_SOFTWARE=1 WLR_NO_HARDWARE_CURSORS=1 \
+           WEBKIT_DISABLE_DMABUF_RENDERER=1 WEBKIT_DISABLE_COMPOSITING_MODE=1
+fi
+if [ "$mode" = lite ] || grep -qw 'toravo.labwc' /proc/cmdline; then
+    exec /usr/bin/toravo-session-lite
+fi
+export XDG_CURRENT_DESKTOP=Hyprland XDG_SESSION_DESKTOP=Hyprland
+start=$(date +%s)
+if command -v start-hyprland >/dev/null 2>&1; then
+    start-hyprland >"$state/hyprland.log" 2>&1
+else
+    Hyprland >"$state/hyprland.log" 2>&1
+fi
+rc=$?
+if [ "$rc" -ne 0 ] && [ $(( $(date +%s) - start )) -lt 25 ]; then
+    echo "$(date -Is) Hyprland exit $rc nach <25 s -> Lite-Sitzung (labwc)" >> "$state/session.log"
+    exec /usr/bin/toravo-session-lite
+fi
+exit "$rc"

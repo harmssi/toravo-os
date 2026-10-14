@@ -1,0 +1,34 @@
+/* Toravo OS design tokens – measured from the announcement trailer "Toravo OS — Official Trailer" (YouTube qPSta1YRV0M,
+   13.10.2026; frames in this folder). One source for the distro (Hyprland, Waybar, launcher, lock screen, SDDM, GTK) and
+   the Toravo Studio web UI. */
+:root {
+  /* surfaces: near-black with a cold violet tint */
+  --tos-bg:        #07070d;   /* desktop / page */
+  --tos-bg-2:      #0c0c14;   /* raised areas */
+  --tos-panel:     #12111c;   /* cards, panels */
+  --tos-panel-2:   #181626;   /* hover / active panel */
+  --tos-line:      #24213a;   /* 1px borders */
+  --tos-glow:      #49317f;   /* the soft violet bloom behind the logo */
+
+  /* text */
+  --tos-text:      #f2f2f7;
+  --tos-text-2:    #a9a8bd;   /* secondary */
+  --tos-text-3:    #6c6a85;   /* labels, captions */
+
+  /* brand */
+  --tos-violet:    #8a5cf6;   /* primary – the "/" in TORAVO/OS, accents */
+  --tos-blue:      #6f9be0;   /* waveform mid */
+  --tos-cyan:      #5ab0d0;   /* waveform high, links on dark */
+  --tos-coral:     #d8806a;   /* "COMING 2027", live / needs attention */
+  --tos-red:       #e5484d;   /* recording / live dot */
+  --tos-green:     #4cc38a;   /* done / ok */
+  --tos-gradient:  linear-gradient(90deg, #8a5cf6 0%, #6f9be0 55%, #5ab0d0 100%);  /* waveforms, progress bars, highlights */
+
+  /* type: Inter for UI, uppercase letter-spaced micro labels, mono for numbers / file names */
+  --tos-font:      "Inter", "Inter Variable", system-ui, sans-serif;
+  --tos-mono:      "JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace;
+  --tos-label-tracking: .32em;  /* "THE AI CONTENT CREATOR OS", "COMMAND BAR", "YuE2 · LOCAL" */
+
+  --tos-radius:    12px;
+  --tos-radius-sm: 8px;
+}

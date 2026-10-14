@@ -1,0 +1,64 @@
+// Toravo OS boot splash
+Window.SetBackgroundTopColor(0.027, 0.027, 0.051);
+Window.SetBackgroundBottomColor(0.027, 0.027, 0.051);
+sw = Window.GetWidth();
+sh = Window.GetHeight();
+bg = Image("background.png");
+scale = sw / bg.GetWidth();
+if (sh / bg.GetHeight() > scale) scale = sh / bg.GetHeight();
+bgs = bg.Scale(Math.Int(bg.GetWidth() * scale), Math.Int(bg.GetHeight() * scale));
+ox = Math.Int((sw - bgs.GetWidth()) / 2);
+oy = Math.Int((sh - bgs.GetHeight()) / 2);
+bgsp = Sprite(bgs);
+bgsp.SetPosition(ox, oy, -10);
+
+for (i = 0; i < 50; i++) {
+    if (i < 10) name = "wave-0" + i + ".png"; else name = "wave-" + i + ".png";
+    w = Image(name);
+    wave[i] = w.Scale(Math.Int(w.GetWidth() * scale), Math.Int(w.GetHeight() * scale));
+}
+wsp = Sprite(wave[0]);
+wsp.SetPosition(Math.Int(sw / 2 - wave[0].GetWidth() / 2), Math.Int(oy + 640 * scale), 5);
+
+ticks = 0;
+boot_progress = 0;
+fun refresh_cb() {
+    ticks++;
+    p = boot_progress;
+    t = ticks / 900;
+    if (t > p) p = t;
+    if (p > 1) p = 1;
+    idx = Math.Int(p * 49);
+    wsp.SetImage(wave[idx]);
+}
+Plymouth.SetRefreshFunction(refresh_cb);
+
+fun progress_cb(duration, progress) {
+    boot_progress = progress;
+}
+Plymouth.SetBootProgressFunction(progress_cb);
+
+// password prompt (encrypted disks)
+fun display_normal_cb() {
+    if (global.pw_sprite) { pw_sprite.SetOpacity(0); pw_text.SetOpacity(0); }
+}
+fun display_password_cb(prompt, bullets) {
+    entry = Image("entry.png");
+    pw_sprite = Sprite(entry);
+    pw_sprite.SetPosition(Math.Int(sw / 2 - entry.GetWidth() / 2), Math.Int(oy + 720 * scale), 10);
+    s = "";
+    for (i = 0; i < bullets; i++) s += "•";
+    img = Image.Text(prompt + "  " + s, 0.95, 0.95, 0.97, 1, "Inter 13");
+    pw_text = Sprite(img);
+    pw_text.SetPosition(Math.Int(sw / 2 - img.GetWidth() / 2), Math.Int(oy + 720 * scale + entry.GetHeight() / 2 - img.GetHeight() / 2), 11);
+    pw_sprite.SetOpacity(1); pw_text.SetOpacity(1);
+}
+Plymouth.SetDisplayNormalFunction(display_normal_cb);
+Plymouth.SetDisplayPasswordFunction(display_password_cb);
+
+fun message_cb(text) {
+    m = Image.Text(text, 0.42, 0.41, 0.52, 1, "Inter 11");
+    msp = Sprite(m);
+    msp.SetPosition(Math.Int(sw / 2 - m.GetWidth() / 2), sh - 60, 10);
+}
+Plymouth.SetMessageFunction(message_cb);

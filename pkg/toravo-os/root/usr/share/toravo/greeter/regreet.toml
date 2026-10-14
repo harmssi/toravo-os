@@ -1,0 +1,20 @@
+# Toravo OS login (greetd + ReGreet inside cage)
+skip_selection = false
+[background]
+path = "/usr/share/toravo/wallpaper/toravo-lock.png"
+fit = "Cover"
+[GTK]
+application_prefer_dark_theme = true
+cursor_theme_name = "Adwaita"
+font_name = "Inter 12"
+icon_theme_name = "Papirus-Dark"
+theme_name = "Adwaita"
+[commands]
+reboot = ["systemctl", "reboot"]
+poweroff = ["systemctl", "poweroff"]
+[appearance]
+greeting_msg = "Willkommen bei Toravo OS"
+[widget.clock]
+format = "%H:%M"
+resolution = "1s"
+label_width = 120

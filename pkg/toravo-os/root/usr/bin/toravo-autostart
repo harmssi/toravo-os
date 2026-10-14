@@ -1,0 +1,34 @@
+#!/bin/bash
+# Started by Hyprland (hl.on "hyprland.start") or labwc (autostart). Brings up the Toravo desktop.
+comp="${1:-hyprland}"
+dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE HYPRLAND_INSTANCE_SIGNATURE \
+    TORAVO_LITE GSK_RENDERER LIBGL_ALWAYS_SOFTWARE QT_QPA_PLATFORMTHEME >/dev/null 2>&1
+gsettings set org.gnome.desktop.interface gtk-theme 'adw-gtk3-dark' 2>/dev/null
+gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' 2>/dev/null
+gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark' 2>/dev/null
+gsettings set org.gnome.desktop.interface font-name 'Inter 10' 2>/dev/null
+gsettings set org.gnome.desktop.interface monospace-font-name 'JetBrains Mono 10' 2>/dev/null
+gsettings set org.gnome.desktop.interface cursor-theme 'Adwaita' 2>/dev/null
+
+wall=/usr/share/toravo/wallpaper/toravo-3840x2160.png
+swaybg -m fill -i "$wall" >/dev/null 2>&1 &
+if [ -e "$HOME/.config/waybar/config" ] || [ -e "$HOME/.config/waybar/config.jsonc" ]; then
+    waybar >/dev/null 2>&1 &
+elif [ "$comp" = hyprland ]; then
+    waybar -c /usr/share/toravo/waybar/config.jsonc -s /usr/share/toravo/waybar/style.css >/dev/null 2>&1 &
+else
+    waybar -c /usr/share/toravo/waybar/config-lite.jsonc -s /usr/share/toravo/waybar/style.css >/dev/null 2>&1 &
+fi
+mako >/dev/null 2>&1 &
+hypridle >/dev/null 2>&1 &
+systemctl --user start hyprpolkitagent.service >/dev/null 2>&1 || /usr/lib/hyprpolkitagent/hyprpolkitagent >/dev/null 2>&1 &
+toravo-desk >/dev/null 2>&1 &
+systemctl --user start toravo-queue.service >/dev/null 2>&1
+command -v nm-applet >/dev/null && nm-applet --indicator >/dev/null 2>&1 &
+sleep 1
+if [ -d /run/archiso ]; then
+    toravo-installer --welcome >/dev/null 2>&1 &
+elif [ ! -e "$HOME/.config/toravo/setup-done" ] && [ ! -e "$HOME/.config/toravo/setup-later" ]; then
+    toravo-setup --first-run >/dev/null 2>&1 &
+fi
+wait

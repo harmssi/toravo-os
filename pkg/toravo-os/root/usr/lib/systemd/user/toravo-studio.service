@@ -1,0 +1,8 @@
+[Unit]
+Description=Toravo Studio Local (Web-UI auf 127.0.0.1:8890)
+
+[Service]
+Type=simple
+Environment=PYTHONPATH=/usr/lib/toravo
+ExecStart=/usr/bin/python3 -m toravo.studio.server
+Restart=on-failure

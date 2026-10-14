@@ -1,0 +1,4 @@
+#!/bin/bash
+if command -v nm-connection-editor >/dev/null; then exec nm-connection-editor; fi
+term=kitty; [ "$TORAVO_LITE" = 1 ] && term=foot
+exec $term -e nmtui

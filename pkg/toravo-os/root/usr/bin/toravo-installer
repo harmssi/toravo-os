@@ -1,0 +1,4 @@
+#!/bin/bash
+# Toravo OS: installer
+export PYTHONPATH=/usr/lib/toravo${PYTHONPATH:+:$PYTHONPATH}
+exec python3 -m toravo.installer.app "$@"

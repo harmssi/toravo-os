@@ -1,0 +1,12 @@
+[Unit]
+Description=Toravo OS Live: Benutzer "toravo" anlegen
+Before=greetd.service display-manager.service
+After=systemd-sysusers.service systemd-tmpfiles-setup.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/lib/toravo/live-user-setup
+
+[Install]
+WantedBy=graphical.target

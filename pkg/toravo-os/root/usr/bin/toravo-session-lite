@@ -1,0 +1,8 @@
+#!/bin/bash
+# Toravo OS Lite session: labwc (wlroots) in the Toravo theme. Works with software rendering.
+/usr/bin/toravo-user-init
+export TORAVO_LITE=1 TORAVO_COMPOSITOR=labwc XDG_CURRENT_DESKTOP=labwc:wlroots XDG_SESSION_DESKTOP=labwc XDG_SESSION_TYPE=wayland
+export GSK_RENDERER=cairo WLR_RENDERER_ALLOW_SOFTWARE=1 WLR_NO_HARDWARE_CURSORS=1 WEBKIT_DISABLE_DMABUF_RENDERER=1
+[ -f /etc/toravo/xkb_layout ] && export XKB_DEFAULT_LAYOUT="$(cat /etc/toravo/xkb_layout)"
+[ -s /etc/toravo/xkb_variant ] && export XKB_DEFAULT_VARIANT="$(cat /etc/toravo/xkb_variant)"
+exec labwc -C /usr/share/toravo/labwc

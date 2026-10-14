@@ -1,0 +1,17 @@
+{
+  "_doc": "LTX-Video 0.9.8 distilled text-to-video, native ComfyUI nodes (API format). 97 frames @ 24 fps. Untested in Phase 1.",
+  "1": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "{{CKPT}}"}},
+  "2": {"class_type": "CLIPLoader", "inputs": {"clip_name": "t5xxl_fp8_e4m3fn_scaled.safetensors", "type": "ltxv", "device": "default"}},
+  "3": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["2", 0], "text": "{{PROMPT}}"}},
+  "4": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["2", 0], "text": "{{NEG}}"}},
+  "5": {"class_type": "LTXVConditioning", "inputs": {"positive": ["3", 0], "negative": ["4", 0], "frame_rate": 24}},
+  "6": {"class_type": "EmptyLTXVLatentVideo", "inputs": {"width": "{{W}}", "height": "{{H}}", "length": "{{FRAMES}}", "batch_size": 1}},
+  "7": {"class_type": "LTXVScheduler", "inputs": {"steps": 8, "max_shift": 2.05, "base_shift": 0.95, "stretch": true, "terminal": 0.1, "latent": ["6", 0]}},
+  "8": {"class_type": "KSamplerSelect", "inputs": {"sampler_name": "euler"}},
+  "9": {"class_type": "RandomNoise", "inputs": {"noise_seed": "{{SEED}}"}},
+  "10": {"class_type": "CFGGuider", "inputs": {"model": ["1", 0], "positive": ["5", 0], "negative": ["5", 1], "cfg": 1.0}},
+  "11": {"class_type": "SamplerCustomAdvanced", "inputs": {"noise": ["9", 0], "guider": ["10", 0], "sampler": ["8", 0], "sigmas": ["7", 0], "latent_image": ["6", 0]}},
+  "12": {"class_type": "VAEDecode", "inputs": {"samples": ["11", 0], "vae": ["1", 2]}},
+  "13": {"class_type": "CreateVideo", "inputs": {"images": ["12", 0], "fps": 24}},
+  "14": {"class_type": "SaveVideo", "inputs": {"video": ["13", 0], "filename_prefix": "{{PREFIX}}", "format": "mp4", "codec": "h264"}}
+}

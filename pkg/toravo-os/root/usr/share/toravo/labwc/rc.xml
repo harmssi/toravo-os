@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<!-- Toravo OS Lite session (labwc) – fallback for GPUs/VMs where Hyprland cannot start -->
+<labwc_config>
+  <core><gap>12</gap><decoration>server</decoration></core>
+  <theme>
+    <name></name>
+    <cornerRadius>12</cornerRadius>
+    <dropShadows>no</dropShadows>
+    <font place="ActiveWindow"><name>Inter</name><size>10</size><weight>bold</weight></font>
+    <font place="InactiveWindow"><name>Inter</name><size>10</size></font>
+    <font place="MenuItem"><name>Inter</name><size>11</size></font>
+    <font place="OnScreenDisplay"><name>Inter</name><size>11</size></font>
+  </theme>
+  <placement><policy>center</policy></placement>
+  <keyboard>
+    <default />
+    <keybind key="W-space"><action name="Execute" command="toravo-commandbar" /></keybind>
+    <keybind key="W-Return"><action name="Execute" command="foot" /></keybind>
+    <keybind key="W-d"><action name="Execute" command="fuzzel" /></keybind>
+    <keybind key="W-s"><action name="Execute" command="toravo-studio" /></keybind>
+    <keybind key="W-e"><action name="Execute" command="thunar" /></keybind>
+    <keybind key="W-b"><action name="Execute" command="firefox" /></keybind>
+    <keybind key="W-l"><action name="Execute" command="loginctl lock-session" /></keybind>
+    <keybind key="W-q"><action name="Close" /></keybind>
+    <keybind key="W-f"><action name="ToggleFullscreen" /></keybind>
+    <keybind key="W-Up"><action name="ToggleMaximize" /></keybind>
+    <keybind key="W-Left"><action name="SnapToEdge" direction="left" /></keybind>
+    <keybind key="W-Right"><action name="SnapToEdge" direction="right" /></keybind>
+    <keybind key="W-S-e"><action name="Execute" command="toravo-power" /></keybind>
+    <keybind key="Print"><action name="Execute" command="toravo-screenshot area" /></keybind>
+  </keyboard>
+</labwc_config>

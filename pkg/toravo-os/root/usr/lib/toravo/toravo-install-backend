@@ -1,0 +1,4 @@
+#!/bin/bash
+# Toravo OS installer backend (root). Called by the installer GUI via sudo (live system only).
+export PYTHONPATH=/usr/lib/toravo
+exec python3 -m toravo.installer.backend "$@"

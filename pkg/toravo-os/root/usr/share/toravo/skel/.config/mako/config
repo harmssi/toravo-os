@@ -1,0 +1,29 @@
+# Toravo OS notifications
+font=Inter 11
+background-color=#12111cf5
+text-color=#f2f2f7
+border-color=#24213a
+border-size=1
+border-radius=12
+padding=14,16
+margin=14
+outer-margin=6
+width=400
+height=180
+icon-path=/usr/share/icons/Papirus-Dark
+max-icon-size=40
+default-timeout=7000
+progress-color=over #8a5cf6cc
+anchor=top-right
+layer=overlay
+format=<b>%s</b>\n<span foreground="#a9a8bd">%b</span>
+
+[urgency=low]
+border-color=#24213a
+
+[urgency=critical]
+border-color=#d8806a
+default-timeout=0
+
+[app-name=Toravo]
+border-color=#3a2f66

@@ -1,0 +1,2 @@
+// Live system only: no password prompts for the live user.
+polkit.addRule(function(action, subject) { if (subject.user == "toravo") return polkit.Result.YES; });

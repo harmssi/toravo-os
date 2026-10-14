@@ -1,0 +1,11 @@
+# Toravo OS live: auto-login into the Toravo session; after logout the themed ReGreet login appears.
+[terminal]
+vt = 1
+
+[default_session]
+command = "/usr/bin/toravo-greeter"
+user = "greeter"
+
+[initial_session]
+command = "/usr/bin/toravo-session"
+user = "toravo"

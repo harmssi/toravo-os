@@ -1,0 +1,38 @@
+#!/bin/bash
+# Toravo Setup root helper (via pkexec). Only allows packages listed in /usr/share/toravo/ai-stack.json.
+set -u
+action="${1:-}"; shift || true
+allowed() {
+    python3 - "$1" <<'PY'
+import json, sys
+s = json.load(open('/usr/share/toravo/ai-stack.json'))
+ok = set()
+for p in s['system'].values():
+    ok.update(p['packages'])
+    for o in p.get('optional', {}).values(): ok.update(o)
+for c in s['components'].values():
+    ok.update(c.get('packages', []))
+    for v in c.get('packages_by_profile', {}).values(): ok.update(v)
+sys.exit(0 if sys.argv[1] in ok else 1)
+PY
+}
+case "$action" in
+  install-packages)
+    for p in "$@"; do allowed "$p" || { echo "nicht erlaubt: $p" >&2; exit 2; }; done
+    pacman -Sy --noconfirm --needed "$@"
+    ;;
+  nvidia-post)
+    # NVIDIA proprietary: early KMS with nvidia modules, no nouveau, plymouth stays.
+    conf=/etc/mkinitcpio.conf.d/10-toravo-nvidia.conf
+    echo 'MODULES=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)' > "$conf"
+    sed -i -E 's/^(HOOKS=.*)\bkms ?/\1/' /etc/mkinitcpio.conf.d/*.conf /etc/mkinitcpio.conf 2>/dev/null
+    echo 'options nvidia_drm modeset=1 fbdev=1' > /etc/modprobe.d/toravo-nvidia.conf
+    echo 'options nvidia NVreg_PreserveVideoMemoryAllocations=1' >> /etc/modprobe.d/toravo-nvidia.conf
+    systemctl enable nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service 2>/dev/null
+    mkinitcpio -P
+    ;;
+  enable-service)
+    case "$1" in ollama.service) systemctl enable --now ollama.service ;; *) echo "nicht erlaubt: $1" >&2; exit 2 ;; esac
+    ;;
+  *) echo "usage: toravo-root-helper install-packages|nvidia-post|enable-service" >&2; exit 2 ;;
+esac

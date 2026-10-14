@@ -1,0 +1,4 @@
+#!/bin/bash
+# Toravo OS: queue
+export PYTHONPATH=/usr/lib/toravo${PYTHONPATH:+:$PYTHONPATH}
+exec python3 -m toravo.queue "$@"

@@ -1,0 +1,5 @@
+#!/bin/bash
+# Toravo OS: desk
+export PYTHONPATH=/usr/lib/toravo${PYTHONPATH:+:$PYTHONPATH}
+[ -e /usr/lib/libgtk4-layer-shell.so ] && export LD_PRELOAD=/usr/lib/libgtk4-layer-shell.so${LD_PRELOAD:+:$LD_PRELOAD}
+exec python3 -m toravo.desk "$@"

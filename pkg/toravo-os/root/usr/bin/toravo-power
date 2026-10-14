@@ -1,0 +1,8 @@
+#!/bin/bash
+choice=$(printf '󰌾  Sperren\n󰍃  Abmelden\n󰜉  Neustart\n󰐥  Ausschalten\n' | fuzzel --dmenu --prompt '❯ ' --lines 4 --width 26)
+case "$choice" in
+  *Sperren) loginctl lock-session ;;
+  *Abmelden) if [ -n "$HYPRLAND_INSTANCE_SIGNATURE" ]; then hyprctl dispatch 'hl.dsp.exit()'; else labwc --exit 2>/dev/null || loginctl terminate-session "$XDG_SESSION_ID"; fi ;;
+  *Neustart) systemctl reboot ;;
+  *Ausschalten) systemctl poweroff ;;
+esac

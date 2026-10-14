@@ -1,0 +1,11 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = filesystem
+Target = toravo-os
+
+[Action]
+Description = Toravo OS: os-release setzen
+When = PostTransaction
+Exec = /usr/lib/toravo/os-release.sh

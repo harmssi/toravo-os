@@ -1,0 +1,7 @@
+#!/bin/bash
+# Copies the Toravo defaults into the user's home (never overwrites own files) and creates the work folders.
+cp -rn /usr/share/toravo/skel/. "$HOME/" 2>/dev/null
+mkdir -p "$HOME/.config/toravo" "$HOME/.local/share/toravo/queue" "$HOME/.local/state/toravo"
+command -v xdg-user-dirs-update >/dev/null && xdg-user-dirs-update >/dev/null 2>&1
+for d in Songs Voice Videos Shorts Thumbnails Projekte Streams; do mkdir -p "$HOME/Toravo/$d"; done
+exit 0

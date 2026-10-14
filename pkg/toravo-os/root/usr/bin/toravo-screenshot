@@ -1,0 +1,6 @@
+#!/bin/bash
+dir="$(xdg-user-dir PICTURES 2>/dev/null || echo "$HOME/Bilder")/Screenshots"; mkdir -p "$dir"
+f="$dir/toravo-$(date +%Y%m%d-%H%M%S).png"
+if [ "$1" = full ]; then grim "$f"; else g=$(slurp) || exit 0; grim -g "$g" "$f"; fi
+wl-copy < "$f" 2>/dev/null
+notify-send -a Toravo -i "$f" "Screenshot gespeichert" "$(basename "$f") · auch in der Zwischenablage"

@@ -1,0 +1,10 @@
+*.iso
+build.log*
+__pycache__/
+.DS_Store
+# lokal/intern – nicht veröffentlichen
+docs/TESTANLEITUNG.md
+screenshots/studio/
+screenshots/run1/
+screenshots/run2/
+build.local.sh

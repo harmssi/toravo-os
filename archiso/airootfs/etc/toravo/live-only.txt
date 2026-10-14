@@ -1,0 +1,22 @@
+# Files that only belong to the live ISO – removed by the installer from the installed system.
+/etc/sudoers.d/00-toravo-live
+/etc/polkit-1/rules.d/49-toravo-live.rules
+/etc/systemd/system/toravo-live-user.service
+/etc/systemd/system/graphical.target.wants/toravo-live-user.service
+/usr/lib/toravo/live-user-setup
+/etc/mkinitcpio.conf.d/archiso.conf
+/etc/systemd/system/etc-pacman.d-gnupg.mount
+/etc/systemd/system/pacman-init.service
+/etc/systemd/system/multi-user.target.wants/pacman-init.service
+/etc/systemd/system/choose-mirror.service
+/etc/systemd/system/multi-user.target.wants/choose-mirror.service
+/usr/local/bin/choose-mirror
+/etc/systemd/journald.conf.d/volatile-storage.conf
+/etc/systemd/logind.conf.d/do-not-suspend.conf
+/etc/systemd/system-generators/systemd-gpt-auto-generator
+/etc/systemd/resolved.conf.d/archiso.conf
+/etc/ssh/sshd_config.d/10-archiso.conf
+/usr/share/applications/de.toravo.Installer.desktop
+/opt/toravo/offline-repo
+/root/.gnupg
+/etc/hostname

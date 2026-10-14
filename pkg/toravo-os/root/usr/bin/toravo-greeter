@@ -1,0 +1,7 @@
+#!/bin/bash
+# greetd default_session (user "greeter"): ReGreet in cage, Toravo look. Software rendering when there is no 3D.
+if PYTHONPATH=/usr/lib/toravo timeout 10 python3 -m toravo.hw --json 2>/dev/null | grep -q '"lite": true'; then
+    export WLR_RENDERER=pixman WLR_RENDERER_ALLOW_SOFTWARE=1 WLR_NO_HARDWARE_CURSORS=1 GSK_RENDERER=cairo
+fi
+export GTK_THEME=Adwaita:dark
+exec cage -s -d -- regreet --config /usr/share/toravo/greeter/regreet.toml --style /usr/share/toravo/greeter/regreet.css

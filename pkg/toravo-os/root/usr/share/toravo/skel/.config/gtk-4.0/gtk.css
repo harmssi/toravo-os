@@ -1,0 +1,24 @@
+/* Toravo OS colours for GTK3 (adw-gtk3) and GTK4/libadwaita apps */
+@define-color accent_color #a78bfa;
+@define-color accent_bg_color #8a5cf6;
+@define-color accent_fg_color #ffffff;
+@define-color window_bg_color #07070d;
+@define-color window_fg_color #f2f2f7;
+@define-color view_bg_color #0c0c14;
+@define-color view_fg_color #f2f2f7;
+@define-color headerbar_bg_color #0c0c14;
+@define-color headerbar_fg_color #f2f2f7;
+@define-color headerbar_border_color #24213a;
+@define-color sidebar_bg_color #0c0c14;
+@define-color card_bg_color #12111c;
+@define-color card_fg_color #f2f2f7;
+@define-color dialog_bg_color #12111c;
+@define-color popover_bg_color #12111c;
+@define-color popover_fg_color #f2f2f7;
+@define-color borders #24213a;
+@define-color destructive_bg_color #e5484d;
+@define-color success_color #4cc38a;
+@define-color warning_color #d8806a;
+:root { --accent-bg-color: #8a5cf6; --accent-color: #a78bfa; --window-bg-color: #07070d; --view-bg-color: #0c0c14;
+        --headerbar-bg-color: #0c0c14; --sidebar-bg-color: #0c0c14; --card-bg-color: #12111c; --popover-bg-color: #12111c;
+        --dialog-bg-color: #12111c; --border-color: #24213a; }

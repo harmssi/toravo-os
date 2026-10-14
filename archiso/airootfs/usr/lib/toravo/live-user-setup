@@ -1,0 +1,6 @@
+#!/bin/bash
+# Live system only: user "toravo" (password "toravo"), autologin via greetd initial_session.
+id toravo >/dev/null 2>&1 && exit 0
+useradd -m -G wheel,video,audio,input,render,storage -s /bin/bash -c "Toravo Live" toravo
+echo 'toravo:toravo' | chpasswd
+exit 0

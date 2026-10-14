@@ -1,0 +1,24 @@
+# Toravo OS desktop, apps and branding (Command Bar, Setup, Installer, Studio Local, themes, Plymouth).
+pkgname=toravo-os
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Toravo OS – The AI Content Creator OS: Hyprland desktop, Command Bar, Toravo Setup, Studio Local, Installer"
+arch=('any')
+url="https://toravo.de"
+license=('LicenseRef-Toravo')
+depends=(hyprland hyprlock hypridle hyprpolkitagent waybar mako fuzzel kitty foot swaybg labwc greetd greetd-regreet cage plymouth
+         adw-gtk-theme papirus-icon-theme qt6ct gtk4-layer-shell python python-gobject python-cairo python-pillow python-psutil
+         webkitgtk-6.0 libnotify inter-font ttf-jetbrains-mono ttf-nerd-fonts-symbols ffmpeg uv grim slurp wl-clipboard
+         xdg-user-dirs networkmanager snapper zram-generator mesa-utils parted gptfdisk rsync arch-install-scripts)
+optdepends=('obs-studio: Streams' 'ollama: lokaler Command-Bar-Agent')
+source=()
+
+package() {
+  cp -a "$startdir/root/." "$pkgdir/"
+  # generated assets (wallpapers, logos, plymouth images) from assets/gen_assets.py
+  install -d "$pkgdir/usr/share/toravo"
+  cp -a "$startdir/generated/wallpaper" "$startdir/generated/logo" "$pkgdir/usr/share/toravo/"
+  cp -a "$startdir/generated/plymouth/." "$pkgdir/usr/share/plymouth/themes/toravo/"
+  find "$pkgdir" -name '__pycache__' -prune -exec rm -rf {} +
+  chmod 755 "$pkgdir"/usr/bin/* "$pkgdir"/usr/lib/toravo/toravo-root-helper "$pkgdir"/usr/lib/toravo/toravo-install-backend "$pkgdir"/usr/lib/toravo/os-release.sh
+}

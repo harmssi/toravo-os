@@ -1,0 +1,4 @@
+#!/bin/bash
+# Toravo OS: agent
+export PYTHONPATH=/usr/lib/toravo${PYTHONPATH:+:$PYTHONPATH}
+exec python3 -m toravo.agent "$@"

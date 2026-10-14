@@ -1,0 +1,15 @@
+/* Toravo OS login – dark panel, violet accent, like the trailer */
+* { font-family: "Inter", sans-serif; }
+window { background-color: #07070d; color: #f2f2f7; }
+frame, .background frame, box.vertical > frame { background-color: rgba(18, 17, 28, 0.94); border: 1px solid #24213a; border-radius: 16px; padding: 26px 30px; box-shadow: 0 24px 80px rgba(0,0,0,0.55), 0 0 120px rgba(73,49,127,0.35); }
+label { color: #a9a8bd; }
+label.title-1, label.title-2, label.title-3, label.title-4 { color: #f2f2f7; font-weight: 800; }
+entry, combobox button, dropdown button { background-color: #0c0c14; color: #f2f2f7; border: 1px solid #24213a; border-radius: 10px; padding: 8px 12px; box-shadow: none; }
+entry:focus-within { border-color: #8a5cf6; }
+button { background-image: none; background-color: #181626; color: #f2f2f7; border: 1px solid #24213a; border-radius: 10px; padding: 8px 16px; box-shadow: none; }
+button:hover { background-color: #201d33; }
+button.suggested-action { background-image: linear-gradient(90deg, #8a5cf6 0%, #6f9be0 55%, #5ab0d0 100%); color: #ffffff; border: none; font-weight: 700; }
+button.destructive-action { background-color: rgba(18,17,28,0.9); color: #a9a8bd; border-color: #24213a; }
+button.destructive-action:hover { color: #d8806a; border-color: #5c2128; }
+infobar, .error { background-color: #2a1216; color: #ffb4b6; border-radius: 10px; }
+popover contents { background-color: #12111c; border: 1px solid #24213a; }

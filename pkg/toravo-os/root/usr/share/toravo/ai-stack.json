@@ -1,0 +1,148 @@
+{
+  "_doc": "Toravo OS – KI-Werkzeugkasten. Modell x Profil-Tabelle: pro Werkzeug gewinnt die erste Variante, deren profiles/min_vram/min_ram passt. Profile: nvidia | amd | intel | cpu. VRAM-Stufen: low < 8 GB, mid 8-16 GB, high >= 16 GB. Nichts davon liegt im ISO; Toravo Setup laedt es nach.",
+  "version": 1,
+  "base_dir": "~/Toravo/AI",
+  "torch_index": {
+    "nvidia": "https://download.pytorch.org/whl/cu128",
+    "amd": "https://download.pytorch.org/whl/rocm6.4",
+    "intel": "https://download.pytorch.org/whl/xpu",
+    "cpu": "https://download.pytorch.org/whl/cpu"
+  },
+  "system": {
+    "nvidia": {"title": "NVIDIA-Treiber (nvidia-open) + CUDA", "packages": ["nvidia-open", "nvidia-utils", "nvidia-settings", "egl-wayland", "libva-nvidia-driver", "opencl-nvidia"], "optional": {"cuda": ["cuda"]}, "license": "NVIDIA (proprietär, Kernelmodul MIT/GPL)", "size_gb": 0.6, "optional_size_gb": {"cuda": 5.0}},
+    "amd": {"title": "AMD: Mesa + Vulkan + ROCm", "packages": ["mesa", "vulkan-radeon", "libva-utils"], "optional": {"rocm": ["rocm-hip-runtime", "rocminfo"]}, "license": "MIT / Open Source", "size_gb": 0.1, "optional_size_gb": {"rocm": 3.0}},
+    "intel": {"title": "Intel: Mesa + Vulkan + Media + oneAPI-Runtime", "packages": ["mesa", "vulkan-intel", "intel-media-driver", "vpl-gpu-rt", "intel-compute-runtime", "level-zero-loader"], "license": "MIT / Open Source", "size_gb": 0.3},
+    "cpu": {"title": "Software-Grafik (Mesa)", "packages": ["mesa"], "license": "MIT", "size_gb": 0}
+  },
+  "tools": [
+    {
+      "id": "video", "title": "Musikvideo", "area": "VIDEO", "engine": "ComfyUI + LTX-Video",
+      "variants": [
+        {"id": "ltxv-13b", "label": "LTX-Video 13B (0.9.8 distilled, fp8)", "profiles": ["nvidia"], "min_vram": 16,
+         "components": ["comfyui"], "models": ["ltxv-13b-distilled-fp8", "t5xxl-fp8"], "workflow": "ltxv_t2v.json", "ckpt": "ltxv-13b-0.9.8-distilled-fp8.safetensors"},
+        {"id": "ltxv-2b", "label": "LTX-Video 2B (0.9.8 distilled)", "profiles": ["nvidia", "amd", "intel"], "min_vram": 8, "amd_needs_rocm": true,
+         "components": ["comfyui"], "models": ["ltxv-2b-distilled", "t5xxl-fp8"], "workflow": "ltxv_t2v.json", "ckpt": "ltxv-2b-0.9.8-distilled.safetensors"},
+        {"id": "slideshow", "label": "Lite: Bilder + Wellenform + Lyrics (FFmpeg)", "profiles": ["nvidia", "amd", "intel", "cpu"], "min_vram": 0,
+         "components": [], "models": [], "note": "läuft überall; KI-Video dann nur Cloud-optional"}
+      ],
+      "optional": [
+        {"id": "ltx2", "label": "LTX-2 19B (distilled fp8, mit Ton) – nur für ComfyUI von Hand", "profiles": ["nvidia"], "min_vram": 24, "default": false,
+         "components": ["comfyui"], "models": ["ltx2-19b-distilled-fp8", "gemma3-12b-fp8", "ltx2-upscaler"]}
+      ]
+    },
+    {
+      "id": "thumbnail", "title": "Thumbnails", "area": "BILD", "engine": "ComfyUI + Qwen-Image",
+      "variants": [
+        {"id": "qwen-fp8", "label": "Qwen-Image (fp8)", "profiles": ["nvidia"], "min_vram": 16, "min_ram": 24,
+         "components": ["comfyui"], "models": ["qwen-image-fp8", "qwen-te-fp8", "qwen-vae"], "workflow": "qwen_image.json", "unet": "qwen_image_fp8_e4m3fn.safetensors"},
+        {"id": "qwen-gguf", "label": "Qwen-Image quantisiert (GGUF Q4_K_M)", "profiles": ["nvidia", "amd", "intel"], "min_vram": 10, "amd_needs_rocm": true,
+         "components": ["comfyui", "comfyui-gguf"], "models": ["qwen-image-q4", "qwen-te-fp8", "qwen-vae"], "workflow": "qwen_image_gguf.json", "unet": "qwen-image-Q4_K_M.gguf"},
+        {"id": "templates", "label": "Lite: Vorlagen-Thumbnails (Frame + Titel, Pillow)", "profiles": ["nvidia", "amd", "intel", "cpu"], "min_vram": 0,
+         "components": [], "models": [], "note": "läuft überall"}
+      ]
+    },
+    {
+      "id": "song", "title": "Song", "area": "SONG", "engine": "YuE2",
+      "variants": [
+        {"id": "yue2", "label": "YuE2-3B (m-a-p)", "profiles": ["nvidia"], "min_vram": 16, "min_ram": 24,
+         "components": ["yue2"], "models": ["yue2-3b", "yue2-vae"]},
+        {"id": "off", "label": "aus – braucht NVIDIA mit ≥ 16 GB (offiziell 24 GB); Cloud-optional", "profiles": ["nvidia", "amd", "intel", "cpu"], "min_vram": 0,
+         "components": [], "models": [], "off": true}
+      ]
+    },
+    {
+      "id": "voice", "title": "Stimme", "area": "VOICE", "engine": "VoxCPM2 / Piper",
+      "variants": [
+        {"id": "voxcpm2", "label": "VoxCPM2 (Stimme klonen)", "profiles": ["nvidia"], "min_vram": 8,
+         "components": ["voxcpm"], "models": ["voxcpm2"]},
+        {"id": "voxcpm2-rocm", "label": "VoxCPM2 auf ROCm (experimentell)", "profiles": ["amd"], "min_vram": 8, "amd_needs_rocm": true,
+         "components": ["voxcpm"], "models": ["voxcpm2"]},
+        {"id": "piper", "label": "Lite: Piper TTS (CPU, ohne Klonen)", "profiles": ["nvidia", "amd", "intel", "cpu"], "min_vram": 0,
+         "components": ["piper"], "models": ["piper-de-thorsten", "piper-en-lessac"]}
+      ]
+    },
+    {
+      "id": "whisper", "title": "Untertitel / Transkript", "area": "WHISPER", "engine": "faster-whisper",
+      "variants": [
+        {"id": "turbo-cuda", "label": "Whisper large-v3-turbo (CUDA)", "profiles": ["nvidia"], "min_vram": 6,
+         "components": ["whisper"], "models": ["whisper-turbo"], "device": "cuda", "model_dir": "faster-whisper-large-v3-turbo"},
+        {"id": "small-cpu", "label": "Lite: Whisper small (CPU int8)", "profiles": ["nvidia", "amd", "intel", "cpu"], "min_vram": 0,
+         "components": ["whisper"], "models": ["whisper-small"], "device": "cpu", "model_dir": "faster-whisper-small"}
+      ]
+    },
+    {
+      "id": "stems", "title": "Stems trennen", "area": "DEMUCS", "engine": "Demucs (htdemucs)",
+      "variants": [
+        {"id": "demucs", "label": "Demucs htdemucs (GPU wenn vorhanden, sonst CPU)", "profiles": ["nvidia", "amd", "intel", "cpu"], "min_vram": 0,
+         "components": ["demucs"], "models": []}
+      ]
+    },
+    {
+      "id": "master", "title": "Mastering", "area": "MATCHERING", "engine": "Matchering",
+      "variants": [
+        {"id": "matchering", "label": "Matchering 2 (CPU)", "profiles": ["nvidia", "amd", "intel", "cpu"], "min_vram": 0,
+         "components": ["matchering"], "models": []}
+      ]
+    },
+    {
+      "id": "llm", "title": "Command-Bar-Agent (lokales LLM)", "area": "AGENT", "engine": "Ollama",
+      "variants": [
+        {"id": "qwen3-8b", "label": "Qwen3 8B über Ollama (CUDA)", "profiles": ["nvidia"], "min_vram": 12, "components": ["ollama"], "models": ["ollama-qwen3-8b"]},
+        {"id": "qwen3-4b", "label": "Qwen3 4B Instruct über Ollama", "profiles": ["nvidia", "amd", "intel"], "min_vram": 6, "components": ["ollama"], "models": ["ollama-qwen3-4b"]},
+        {"id": "qwen3-1.7b", "label": "Lite: Qwen3 1.7B (CPU)", "profiles": ["nvidia", "amd", "intel", "cpu"], "min_vram": 0, "components": ["ollama"], "models": ["ollama-qwen3-1.7b"]}
+      ]
+    },
+    {
+      "id": "obs", "title": "Streams (OBS)", "area": "OBS", "engine": "OBS Studio",
+      "variants": [
+        {"id": "obs", "label": "OBS Studio (Encoder je nach GPU: NVENC / VAAPI / QSV / x264)", "profiles": ["nvidia", "amd", "intel", "cpu"], "min_vram": 0,
+         "components": ["obs"], "models": []}
+      ]
+    },
+    {
+      "id": "shorts", "title": "Shorts (9:16 + Untertitel)", "area": "SHORTS", "engine": "FFmpeg + Whisper",
+      "variants": [
+        {"id": "ffmpeg", "label": "FFmpeg (HW-Encoder wenn vorhanden) + Whisper-Untertitel", "profiles": ["nvidia", "amd", "intel", "cpu"], "min_vram": 0,
+         "components": [], "models": [], "note": "läuft überall"}
+      ]
+    }
+  ],
+  "components": {
+    "comfyui":      {"title": "ComfyUI", "kind": "git-venv", "repo": "https://github.com/comfyanonymous/ComfyUI", "dir": "ComfyUI", "python": "3.12", "torch": true,
+                     "requirements": "requirements.txt", "license": "GPL-3.0", "size_gb": 6.0, "service": "toravo-comfyui"},
+    "comfyui-gguf": {"title": "ComfyUI-GGUF (Node)", "kind": "custom-node", "repo": "https://github.com/city96/ComfyUI-GGUF", "parent": "comfyui", "dir": "ComfyUI/custom_nodes/ComfyUI-GGUF",
+                     "requirements": "requirements.txt", "license": "Apache-2.0", "size_gb": 0.05},
+    "yue2":         {"title": "YuE2 (yue2-infer)", "kind": "pip-venv", "dir": "yue2", "python": "3.12", "torch": true, "torch_version": "2.10.0",
+                     "pip_from_hf": {"repo": "m-a-p/YuE2-3B", "file": "yue2_infer-0.1.5-py3-none-any.whl"}, "license": "CC-BY-NC-4.0 (Modell) / Code siehe Paket", "size_gb": 6.0},
+    "voxcpm":       {"title": "VoxCPM", "kind": "pip-venv", "dir": "voxcpm", "python": "3.12", "torch": true, "pip": ["voxcpm", "soundfile"], "license": "Apache-2.0", "size_gb": 5.0},
+    "piper":        {"title": "Piper TTS", "kind": "pip-venv", "dir": "piper", "python": "3.12", "torch": false, "pip": ["piper-tts"], "license": "MIT (Stimmen: siehe MODEL_CARD)", "size_gb": 0.2},
+    "whisper":      {"title": "faster-whisper", "kind": "pip-venv", "dir": "whisper", "python": "3.12", "torch": false, "pip": ["faster-whisper"], "pip_nvidia": ["nvidia-cublas-cu12", "nvidia-cudnn-cu12==9.*"], "license": "MIT", "size_gb": 0.6},
+    "demucs":       {"title": "Demucs", "kind": "pip-venv", "dir": "demucs", "python": "3.12", "torch": true, "pip": ["demucs", "soundfile"], "license": "MIT", "size_gb": 4.0},
+    "matchering":   {"title": "Matchering", "kind": "pip-venv", "dir": "matchering", "python": "3.12", "torch": false, "pip": ["matchering"], "license": "GPL-3.0", "size_gb": 0.2},
+    "ollama":       {"title": "Ollama", "kind": "pkg", "packages_by_profile": {"nvidia": ["ollama-cuda"], "amd": ["ollama-rocm"], "amd_norocm": ["ollama-vulkan"], "intel": ["ollama-vulkan"], "cpu": ["ollama"]},
+                     "enable_service": "ollama.service", "license": "MIT", "size_gb": 1.5},
+    "obs":          {"title": "OBS Studio", "kind": "pkg", "packages": ["obs-studio"], "license": "GPL-2.0", "size_gb": 0.3}
+  },
+  "models": {
+    "ltxv-13b-distilled-fp8": {"repo": "Lightricks/LTX-Video", "file": "ltxv-13b-0.9.8-distilled-fp8.safetensors", "dest": "ComfyUI/models/checkpoints", "size_gb": 15.7, "license": "LTX-Video Open Weights License 0.X (frei < 10 Mio. USD Jahresumsatz)"},
+    "ltxv-2b-distilled":      {"repo": "Lightricks/LTX-Video", "file": "ltxv-2b-0.9.8-distilled.safetensors", "dest": "ComfyUI/models/checkpoints", "size_gb": 6.3, "license": "LTX-Video Open Weights License 0.X (frei < 10 Mio. USD Jahresumsatz)"},
+    "t5xxl-fp8":              {"repo": "Comfy-Org/mochi_preview_repackaged", "file": "split_files/text_encoders/t5xxl_fp8_e4m3fn_scaled.safetensors", "dest": "ComfyUI/models/text_encoders", "size_gb": 5.2, "license": "Apache-2.0 (T5)"},
+    "ltx2-19b-distilled-fp8": {"repo": "Lightricks/LTX-2", "file": "ltx-2-19b-distilled-fp8.safetensors", "dest": "ComfyUI/models/checkpoints", "size_gb": 27.1, "license": "LTX-2 Community License (frei < 10 Mio. USD Jahresumsatz)"},
+    "gemma3-12b-fp8":         {"repo": "Comfy-Org/ltx-2", "file": "split_files/text_encoders/gemma_3_12B_it_fp8_scaled.safetensors", "dest": "ComfyUI/models/text_encoders", "size_gb": 13.2, "license": "Gemma Terms of Use"},
+    "ltx2-upscaler":          {"repo": "Lightricks/LTX-2", "file": "ltx-2-spatial-upscaler-x2-1.0.safetensors", "dest": "ComfyUI/models/latent_upscale_models", "size_gb": 1.0, "license": "LTX-2 Community License"},
+    "qwen-image-fp8":         {"repo": "Comfy-Org/Qwen-Image_ComfyUI", "file": "split_files/diffusion_models/qwen_image_fp8_e4m3fn.safetensors", "dest": "ComfyUI/models/diffusion_models", "size_gb": 20.4, "license": "Apache-2.0"},
+    "qwen-image-q4":          {"repo": "city96/Qwen-Image-gguf", "file": "qwen-image-Q4_K_M.gguf", "dest": "ComfyUI/models/diffusion_models", "size_gb": 13.1, "license": "Apache-2.0"},
+    "qwen-te-fp8":            {"repo": "Comfy-Org/Qwen-Image_ComfyUI", "file": "split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors", "dest": "ComfyUI/models/text_encoders", "size_gb": 9.4, "license": "Apache-2.0"},
+    "qwen-vae":               {"repo": "Comfy-Org/Qwen-Image_ComfyUI", "file": "split_files/vae/qwen_image_vae.safetensors", "dest": "ComfyUI/models/vae", "size_gb": 0.3, "license": "Apache-2.0"},
+    "yue2-3b":                {"repo": "m-a-p/YuE2-3B", "snapshot": true, "dest": "hf", "size_gb": 7.4, "license": "CC-BY-NC-4.0"},
+    "yue2-vae":               {"repo": "m-a-p/YuE2-Vae", "snapshot": true, "dest": "hf", "size_gb": 1.0, "license": "CC-BY-NC-4.0"},
+    "voxcpm2":                {"repo": "openbmb/VoxCPM2", "snapshot": true, "dest": "hf", "size_gb": 5.0, "license": "Apache-2.0"},
+    "piper-de-thorsten":      {"repo": "rhasspy/piper-voices", "files": ["de/de_DE/thorsten/high/de_DE-thorsten-high.onnx", "de/de_DE/thorsten/high/de_DE-thorsten-high.onnx.json"], "dest": "piper/voices", "flatten": true, "size_gb": 0.12, "license": "siehe MODEL_CARD (Thorsten-Voice: CC0)"},
+    "piper-en-lessac":        {"repo": "rhasspy/piper-voices", "files": ["en/en_US/lessac/medium/en_US-lessac-medium.onnx", "en/en_US/lessac/medium/en_US-lessac-medium.onnx.json"], "dest": "piper/voices", "flatten": true, "size_gb": 0.07, "license": "siehe MODEL_CARD"},
+    "whisper-turbo":          {"repo": "deepdml/faster-whisper-large-v3-turbo-ct2", "snapshot": true, "dest": "whisper/models/faster-whisper-large-v3-turbo", "size_gb": 1.6, "license": "MIT"},
+    "whisper-small":          {"repo": "Systran/faster-whisper-small", "snapshot": true, "dest": "whisper/models/faster-whisper-small", "size_gb": 0.5, "license": "MIT"},
+    "ollama-qwen3-8b":        {"ollama": "qwen3:8b", "size_gb": 5.2, "license": "Apache-2.0"},
+    "ollama-qwen3-4b":        {"ollama": "qwen3:4b-instruct-2507-q4_K_M", "size_gb": 2.5, "license": "Apache-2.0"},
+    "ollama-qwen3-1.7b":      {"ollama": "qwen3:1.7b", "size_gb": 1.4, "license": "Apache-2.0"}
+  }
+}
