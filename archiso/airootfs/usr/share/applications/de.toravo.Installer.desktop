@@ -1,6 +1,8 @@
 [Desktop Entry]
-Name=Toravo OS installieren
-Comment=In 3 Schritten auf diesen Rechner installieren
+Name=Install Toravo OS
+Name[de]=Toravo OS installieren
+Comment=Install on this computer in 3 steps
+Comment[de]=In 3 Schritten auf diesen Rechner installieren
 Exec=toravo-installer
 Icon=/usr/share/toravo/logo/toravo-t-128.png
 Terminal=false

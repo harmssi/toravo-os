@@ -1,6 +1,7 @@
 [Desktop Entry]
 Name=Toravo OS
-Comment=Hyprland im Toravo-Look (automatisch Lite ohne 3D-Beschleunigung)
+Comment=Hyprland in the Toravo look (Lite automatically without 3D acceleration)
+Comment[de]=Hyprland im Toravo-Look (automatisch Lite ohne 3D-Beschleunigung)
 Exec=/usr/bin/toravo-session
 Type=Application
 DesktopNames=Hyprland

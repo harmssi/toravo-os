@@ -1,5 +1,6 @@
 """Disk detection for the Toravo installer: which disks exist, what is on them, how much free space, what is safe."""
 import json, os, re, subprocess
+from ..theme import tr
 
 ESP_GUID = 'c12a7328-f81f-11d2-ba4b-00a0c93ec93b'
 MS_BASIC = 'ebd0a0a2-b9e5-4433-87c0-68b6b72699c7'
@@ -85,14 +86,14 @@ def scan():
         info['can_alongside'] = bool(uefi and info['pttype'] == 'gpt' and biggest >= MIN_GB * 1e9 and not info['boot_medium'])
         info['too_small'] = size < MIN_GB * 1e9
         if info['boot_medium']:
-            content = 'Toravo-Installationsmedium'
+            content = tr('Toravo-Installationsmedium', 'Toravo install medium')
         elif info['empty']:
-            content = 'leer'
+            content = tr('leer', 'empty')
         else:
-            found = [x for x, k in (('Windows', 'windows'), ('Linux', 'linux'), ('Daten', 'other')) if info[k]]
-            content = (' + '.join(found) + ' gefunden') if found else f'{len(parts)} Partition(en)'
+            found = [x for x, k in (('Windows', 'windows'), ('Linux', 'linux'), (tr('Daten', 'data'), 'other')) if info[k]]
+            content = (' + '.join(found) + tr(' gefunden', ' found')) if found else tr(f'{len(parts)} Partition(en)', f'{len(parts)} partition(s)')
             if biggest >= 1e9:
-                content += f' · {human(biggest)} frei'
+                content += f' · {human(biggest)} ' + tr('frei', 'free')
         info['content'] = content
         disks.append(info)
     return disks

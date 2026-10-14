@@ -4,6 +4,8 @@
 # and the labwc fallback session when Hyprland cannot start at all (very old GPU, some VMs).
 mode="${1:-auto}"
 export XDG_SESSION_TYPE=wayland
+. /usr/lib/toravo/locale.sh && toravo_load_locale
+export TORAVO_LOCALE_LOADED=1
 /usr/bin/toravo-user-init
 state="${XDG_STATE_HOME:-$HOME/.local/state}/toravo"; mkdir -p "$state"
 PYTHONPATH=/usr/lib/toravo timeout 15 python3 -m toravo.hw --json > "$state/hw.json.tmp" 2>/dev/null && mv -f "$state/hw.json.tmp" "$state/hw.json"

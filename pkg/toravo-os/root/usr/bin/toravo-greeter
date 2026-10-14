@@ -4,4 +4,12 @@ if PYTHONPATH=/usr/lib/toravo timeout 10 python3 -m toravo.hw --json 2>/dev/null
     export WLR_RENDERER=pixman WLR_RENDERER_ALLOW_SOFTWARE=1 WLR_NO_HARDWARE_CURSORS=1 GSK_RENDERER=cairo
 fi
 export GTK_THEME=Adwaita:dark
-exec cage -s -d -- regreet --config /usr/share/toravo/greeter/regreet.toml --style /usr/share/toravo/greeter/regreet.css
+# 14.10.2026: greeter language = system locale (/etc/locale.conf); English greeting for non-German systems
+[ -r /etc/locale.conf ] && { set -a; . /etc/locale.conf; set +a; }
+. /usr/lib/toravo/locale.sh
+cfg=/usr/share/toravo/greeter/regreet.toml
+if [ "$(toravo_ui)" = en ]; then
+    en="${XDG_RUNTIME_DIR:-/tmp}/toravo-regreet.toml"
+    sed 's/greeting_msg = "Willkommen bei Toravo OS"/greeting_msg = "Welcome to Toravo OS"/' "$cfg" > "$en" && cfg="$en"
+fi
+exec cage -s -d -- regreet --config "$cfg" --style /usr/share/toravo/greeter/regreet.css

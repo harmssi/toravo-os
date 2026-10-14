@@ -1,6 +1,6 @@
 """Toravo OS installer – "the simplest installer in the world": 3 screens, fullscreen, trailer look.
 
-1 Willkommen (language/keyboard detected, small "ändern" link)  2 Wohin installieren? (disk tiles, safest default)
+1 Willkommen / Welcome (language/keyboard detected, small "ändern"/"change" link – the UI follows the chosen language live)  2 Wohin installieren? (disk tiles, safest default)
 3 Wer bist du? (name + password)  ->  Installieren (waveform progress)  ->  Neu starten
 Everything else (partitions, btrfs + snapshots, zram, bootloader, timezone, drivers) happens without questions.
 """
@@ -9,14 +9,15 @@ import gi
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk, GLib, Gio, Pango
 from .. import theme, hw
+from ..theme import tr
 from ..widgets import Wave, logo, wordmark, label, micro, vbox, hbox, spacer
 from . import disks as D
 
 LANGS = [('de_DE.UTF-8', 'Deutsch'), ('en_US.UTF-8', 'English (US)'), ('en_GB.UTF-8', 'English (UK)'), ('fr_FR.UTF-8', 'Français'),
          ('es_ES.UTF-8', 'Español'), ('it_IT.UTF-8', 'Italiano'), ('nl_NL.UTF-8', 'Nederlands'), ('pl_PL.UTF-8', 'Polski'),
          ('pt_PT.UTF-8', 'Português'), ('tr_TR.UTF-8', 'Türkçe')]
-KEYBOARDS = [('de', '', 'de-latin1', 'Deutsch'), ('de', 'nodeadkeys', 'de-latin1-nodeadkeys', 'Deutsch (ohne Tottasten)'),
-             ('ch', 'de', 'de_CH-latin1', 'Schweiz (Deutsch)'), ('at', '', 'de-latin1', 'Österreich'), ('us', '', 'us', 'English (US)'),
+KEYBOARDS = [('de', '', 'de-latin1', 'Deutsch', 'German'), ('de', 'nodeadkeys', 'de-latin1-nodeadkeys', 'Deutsch (ohne Tottasten)', 'German (no dead keys)'),
+             ('ch', 'de', 'de_CH-latin1', 'Schweiz (Deutsch)', 'Swiss (German)'), ('at', '', 'de-latin1', 'Österreich', 'Austrian'), ('us', '', 'us', 'English (US)'),
              ('gb', '', 'uk', 'English (UK)'), ('fr', '', 'fr-latin1', 'Français'), ('es', '', 'es', 'Español'), ('it', '', 'it', 'Italiano'),
              ('nl', '', 'nl', 'Nederlands'), ('pl', '', 'pl', 'Polski'), ('pt', '', 'pt-latin1', 'Português'), ('tr', '', 'trq', 'Türkçe')]
 ZONES = ['Europe/Berlin', 'Europe/Vienna', 'Europe/Zurich', 'Europe/London', 'Europe/Paris', 'Europe/Madrid', 'Europe/Rome',
@@ -24,8 +25,12 @@ ZONES = ['Europe/Berlin', 'Europe/Vienna', 'Europe/Zurich', 'Europe/London', 'Eu
 LANG_KB = {'de': 0, 'en_US': 4, 'en_GB': 5, 'fr': 6, 'es': 7, 'it': 8, 'nl': 9, 'pl': 10, 'pt': 11, 'tr': 12}
 
 
+def kb_name(k):
+    return k[4] if len(k) > 4 and theme.lang() == 'en' else k[3]
+
+
 def detect_locale():
-    lang = os.environ.get('LANG', 'de_DE.UTF-8')
+    lang = os.environ.get('LANG') or 'de_DE.UTF-8'
     li = next((i for i, (k, _) in enumerate(LANGS) if k.split('.')[0] == lang.split('.')[0]), 0)
     code = LANGS[li][0].split('.')[0]
     ki = LANG_KB.get(code, LANG_KB.get(code.split('_')[0], 0))
@@ -70,7 +75,7 @@ def login_from(name):
 
 class Installer(Gtk.ApplicationWindow):
     def __init__(self, app, welcome_mode=False):
-        super().__init__(application=app, title='Toravo OS installieren')
+        super().__init__(application=app, title=tr('Toravo OS installieren', 'Install Toravo OS'))
         self.welcome_mode = welcome_mode
         self.li, self.ki = detect_locale()
         self.tz = 'Europe/Berlin'
@@ -83,13 +88,27 @@ class Installer(Gtk.ApplicationWindow):
         overlay.set_child(bg)
         overlay.add_overlay(self.pages)
         self.set_child(overlay)
+        self.build_pages()
+        detect_timezone(self.set_tz)
+        threading.Thread(target=self.load_hw, daemon=True).start()
+        self.fullscreen()
+
+    def build_pages(self):
+        for n in ('welcome', 'disk', 'user', 'progress'):
+            old = self.pages.get_child_by_name(n)
+            if old is not None:
+                self.pages.remove(old)
         self.pages.add_named(self.p_welcome(), 'welcome')
         self.pages.add_named(self.p_disk(), 'disk')
         self.pages.add_named(self.p_user(), 'user')
         self.pages.add_named(self.p_progress(), 'progress')
-        detect_timezone(self.set_tz)
-        threading.Thread(target=self.load_hw, daemon=True).start()
-        self.fullscreen()
+
+    def relabel(self):
+        """14.10.2026 (owner: Toravo OS must also show English): the chosen language applies to the installer at once."""
+        self.set_title(tr('Toravo OS installieren', 'Install Toravo OS'))
+        self.build_pages()
+        self.pages.set_visible_child_name('welcome')
+        return False
 
     def load_hw(self):
         try:
@@ -104,7 +123,8 @@ class Installer(Gtk.ApplicationWindow):
         self.update_locale_label()
 
     # -------------------------------------------------------------- frame
-    def frame(self, step, title, body, content, back=None, nxt=None, nxt_label='Weiter'):
+    def frame(self, step, title, body, content, back=None, nxt=None, nxt_label=None):
+        nxt_label = nxt_label or tr('Weiter', 'Next')
         outer = vbox(0)
         outer.set_halign(Gtk.Align.CENTER)
         outer.set_valign(Gtk.Align.FILL)
@@ -116,7 +136,7 @@ class Installer(Gtk.ApplicationWindow):
                 d = Gtk.Label(label='●' if i == step else '○')
                 d.add_css_class('tos-label-violet' if i <= step else 'tos-label')
                 dots.append(d)
-            dots.append(label(f'SCHRITT {step} VON 3', 'tos-label'))
+            dots.append(label(tr(f'SCHRITT {step} VON 3', f'STEP {step} OF 3'), 'tos-label'))
             top.append(dots)
         top.set_margin_top(36)
         outer.append(top)
@@ -133,7 +153,7 @@ class Installer(Gtk.ApplicationWindow):
         outer.append(spacer())
         nav = hbox(14)
         if back:
-            bb = Gtk.Button(label='Zurück')
+            bb = Gtk.Button(label=tr('Zurück', 'Back'))
             bb.add_css_class('tos-big')
             bb.connect('clicked', lambda *_: back())
             nav.append(bb)
@@ -152,17 +172,17 @@ class Installer(Gtk.ApplicationWindow):
     def p_welcome(self):
         c = vbox(22)
         btns = hbox(16)
-        inst = Gtk.Button(label='Toravo OS installieren')
+        inst = Gtk.Button(label=tr('Toravo OS installieren', 'Install Toravo OS'))
         inst.add_css_class('tos-primary')
         inst.connect('clicked', lambda *_: self.go_disk())
         btns.append(inst)
-        tryb = Gtk.Button(label='Erst ausprobieren')
+        tryb = Gtk.Button(label=tr('Erst ausprobieren', 'Try it first'))
         tryb.add_css_class('tos-big')
         tryb.connect('clicked', lambda *_: self.close())
         btns.append(tryb)
         c.append(btns)
         self.loc_lbl = label('', 'tos-small')
-        chg = Gtk.MenuButton(label='ändern')
+        chg = Gtk.MenuButton(label=tr('ändern', 'change'))
         chg.add_css_class('tos-link')
         chg.set_popover(self.locale_popover())
         c.append(hbox(6, self.loc_lbl, chg))
@@ -172,9 +192,11 @@ class Installer(Gtk.ApplicationWindow):
         self.update_locale_label()
         hero = vbox(0)
         hero.append(logo(96, glow=True))
-        f = self.frame(1, 'Willkommen bei Toravo OS.',
-                       'Dein Rechner wird zum KI-Studio für Songs, Stimmen, Musikvideos, Shorts, Thumbnails und Streams. '
-                       'Lokal. Open Source. Kostenlos. Die Installation dauert etwa 5 Minuten und braucht nur 3 Schritte.', c)
+        f = self.frame(1, tr('Willkommen bei Toravo OS.', 'Welcome to Toravo OS.'),
+                       tr('Dein Rechner wird zum KI-Studio für Songs, Stimmen, Musikvideos, Shorts, Thumbnails und Streams. '
+                          'Lokal. Open Source. Kostenlos. Die Installation dauert etwa 5 Minuten und braucht nur 3 Schritte.',
+                          'Your computer becomes an AI studio for songs, voices, music videos, Shorts, thumbnails and streams. '
+                          'Local. Open source. Free. Installing takes about 5 minutes and only 3 steps.'), c)
         return f
 
     def locale_popover(self):
@@ -182,23 +204,25 @@ class Installer(Gtk.ApplicationWindow):
         b = vbox(10, margin=14)
         self.lang_dd = Gtk.DropDown.new_from_strings([n for _, n in LANGS])
         self.lang_dd.set_selected(self.li)
-        self.kb_dd = Gtk.DropDown.new_from_strings([k[3] for k in KEYBOARDS])
+        self.kb_dd = Gtk.DropDown.new_from_strings([kb_name(k) for k in KEYBOARDS])
         self.kb_dd.set_selected(self.ki)
         self.tz_dd = Gtk.DropDown.new_from_strings(ZONES)
-        self.tz_dd.set_selected(0)
-        for lbl, w in (('SPRACHE', self.lang_dd), ('TASTATUR', self.kb_dd), ('ZEITZONE', self.tz_dd)):
+        self.tz_dd.set_selected(ZONES.index(self.tz) if self.tz in ZONES else 0)
+        for lbl, w in ((tr('SPRACHE', 'LANGUAGE'), self.lang_dd), (tr('TASTATUR', 'KEYBOARD'), self.kb_dd), (tr('ZEITZONE', 'TIME ZONE'), self.tz_dd)):
             b.append(micro(lbl))
             b.append(w)
         self.lang_dd.connect('notify::selected', lambda *_: self.on_locale())
         self.kb_dd.connect('notify::selected', lambda *_: self.on_locale())
         self.tz_dd.connect('notify::selected', lambda *_: self.on_locale())
-        test = Gtk.Entry(placeholder_text='Tastatur testen: äöü ß @ €')
+        test = Gtk.Entry(placeholder_text=tr('Testen: äöü ß @ €', 'Test: @ # € £ ~'))
         b.append(test)
         pop.set_child(b)
         return pop
 
     def on_locale(self):
-        self.li = self.lang_dd.get_selected()
+        new_li = self.lang_dd.get_selected()
+        lang_changed = new_li != self.li
+        self.li = new_li
         new_ki = self.kb_dd.get_selected()
         if new_ki != self.ki:
             self.ki = new_ki
@@ -208,10 +232,16 @@ class Installer(Gtk.ApplicationWindow):
                 subprocess.run(['hyprctl', 'keyword', 'input:kb_variant', k[1]], capture_output=True)
         self.tz = ZONES[self.tz_dd.get_selected()]
         self.update_locale_label()
+        if lang_changed:
+            before = theme.lang()
+            os.environ['TORAVO_LANG'] = LANGS[self.li][0]
+            if theme.lang() != before:
+                GLib.idle_add(self.relabel)
 
     def update_locale_label(self):
         if hasattr(self, 'loc_lbl'):
-            self.loc_lbl.set_text(f'Sprache: {LANGS[self.li][1]}  ·  Tastatur: {KEYBOARDS[self.ki][3]}  ·  Zeitzone: {self.tz}')
+            self.loc_lbl.set_text(tr(f'Sprache: {LANGS[self.li][1]}  ·  Tastatur: {kb_name(KEYBOARDS[self.ki])}  ·  Zeitzone: {self.tz}',
+                                     f'Language: {LANGS[self.li][1]}  ·  Keyboard: {kb_name(KEYBOARDS[self.ki])}  ·  Time zone: {self.tz}'))
 
     def check_net(self):
         while (ch := self.net_row.get_first_child()) is not None:
@@ -219,28 +249,29 @@ class Installer(Gtk.ApplicationWindow):
         if online():
             self.net_row.append(label('● Online', 'tos-small tos-ok'))
         else:
-            self.net_row.append(label('Kein Internet – nicht nötig für die Installation, aber für Uhrzeit, Updates und KI-Modelle.', 'tos-small'))
-            w = Gtk.Button(label='WLAN verbinden')
+            self.net_row.append(label(tr('Kein Internet – nicht nötig für die Installation, aber für Uhrzeit, Updates und KI-Modelle.',
+                                         'No internet – not needed to install, but for the clock, updates and AI models.'), 'tos-small'))
+            w = Gtk.Button(label=tr('WLAN verbinden', 'Connect Wi-Fi'))
             w.add_css_class('tos-link')
             w.connect('clicked', lambda *_: self.wifi_dialog())
             self.net_row.append(w)
         return False
 
     def wifi_dialog(self):
-        dlg = Gtk.Window(transient_for=self, modal=True, title='WLAN')
+        dlg = Gtk.Window(transient_for=self, modal=True, title=tr('WLAN', 'Wi-Fi'))
         dlg.set_default_size(460, 420)
         b = vbox(10, margin=20)
-        b.append(label('WLAN verbinden', 'tos-h2'))
+        b.append(label(tr('WLAN verbinden', 'Connect Wi-Fi'), 'tos-h2'))
         lb = Gtk.ListBox()
         sc = Gtk.ScrolledWindow(vexpand=True)
         sc.set_child(lb)
         b.append(sc)
         pw = Gtk.PasswordEntry(show_peek_icon=True)
-        pw.set_property('placeholder-text', 'Passwort')
+        pw.set_property('placeholder-text', tr('Passwort', 'Password'))
         b.append(pw)
         st = label('', 'tos-small')
         b.append(st)
-        con = Gtk.Button(label='Verbinden')
+        con = Gtk.Button(label=tr('Verbinden', 'Connect'))
         con.add_css_class('tos-primary')
         b.append(con)
         dlg.set_child(b)
@@ -255,7 +286,7 @@ class Installer(Gtk.ApplicationWindow):
                 r.ssid = p[0]
                 lb.append(r)
         if not seen:
-            st.set_text('Kein WLAN gefunden (oder kein WLAN-Adapter).')
+            st.set_text(tr('Kein WLAN gefunden (oder kein WLAN-Adapter).', 'No Wi-Fi found (or no Wi-Fi adapter).'))
 
         def connect(*_):
             r = lb.get_selected_row()
@@ -267,7 +298,7 @@ class Installer(Gtk.ApplicationWindow):
                 dlg.close()
                 self.check_net()
             else:
-                st.set_text('Verbindung fehlgeschlagen: ' + (res.stderr or res.stdout).strip()[-120:])
+                st.set_text(tr('Verbindung fehlgeschlagen: ', 'Connection failed: ') + (res.stderr or res.stdout).strip()[-120:])
         con.connect('clicked', connect)
         dlg.present()
 
@@ -281,8 +312,11 @@ class Installer(Gtk.ApplicationWindow):
         c.append(self.disk_info)
         self.erase_box = vbox(10)
         c.append(self.erase_box)
-        return self.frame(2, 'Wohin installieren?', 'Wähle eine Platte. Toravo nimmt von sich aus immer die sicherste Möglichkeit – '
-                          'es wird nie etwas gelöscht, ohne dass du es ausdrücklich bestätigst.', c,
+        return self.frame(2, tr('Wohin installieren?', 'Where to install?'),
+                          tr('Wähle eine Platte. Toravo nimmt von sich aus immer die sicherste Möglichkeit – '
+                             'es wird nie etwas gelöscht, ohne dass du es ausdrücklich bestätigst.',
+                             'Pick a disk. Toravo always takes the safest option on its own – '
+                             'nothing is ever erased unless you explicitly confirm it.'), c,
                           back=lambda: self.pages.set_visible_child_name('welcome'), nxt=self.go_user)
 
     def go_disk(self):
@@ -329,49 +363,57 @@ class Installer(Gtk.ApplicationWindow):
         d = self.disk()
         nb = getattr(self, 'next_btn', None)
         if not self.disks:
-            self.disk_info.set_text('Keine Platte gefunden.')
+            self.disk_info.set_text(tr('Keine Platte gefunden.', 'No disk found.'))
             self.set_next(False)
             return
         if not d:
-            self.disk_info.set_text('Keine leere Platte und kein freier Platz gefunden. Wähle eine Platte – sie müsste dann komplett gelöscht werden.')
+            self.disk_info.set_text(tr('Keine leere Platte und kein freier Platz gefunden. Wähle eine Platte – sie müsste dann komplett gelöscht werden.',
+                                       'No empty disk and no free space found. Pick a disk – it would then have to be erased completely.'))
             self.set_next(False)
             return
         if self.mode == 'empty':
-            self.disk_info.set_markup(f'<b>Empfohlen:</b> Toravo OS kommt auf die leere Platte <b>{d["model"]}</b> ({d["size_h"]}). Andere Platten bleiben unberührt.')
+            self.disk_info.set_markup(tr(f'<b>Empfohlen:</b> Toravo OS kommt auf die leere Platte <b>{d["model"]}</b> ({d["size_h"]}). Andere Platten bleiben unberührt.',
+                                         f'<b>Recommended:</b> Toravo OS goes onto the empty disk <b>{d["model"]}</b> ({d["size_h"]}). Other disks stay untouched.'))
             self.set_next(True)
         elif self.mode == 'alongside':
-            other = 'Windows' if d['windows'] else 'dem vorhandenen System'
-            self.disk_info.set_markup(f'<b>Neben {other}:</b> Toravo nutzt nur den freien Platz ({d["free_h"]}). Beim Start wählst du, welches System startet. '
-                                      'Vorhandene Partitionen werden nicht verändert.')
+            other = 'Windows' if d['windows'] else tr('dem vorhandenen System', 'the existing system')
+            self.disk_info.set_markup(tr(f'<b>Neben {other}:</b> Toravo nutzt nur den freien Platz ({d["free_h"]}). Beim Start wählst du, welches System startet. '
+                                         'Vorhandene Partitionen werden nicht verändert.',
+                                         f'<b>Next to {other}:</b> Toravo only uses the free space ({d["free_h"]}). At startup you choose which system boots. '
+                                         'Existing partitions are not changed.'))
             self.set_next(True)
             self.add_erase_option(d)
         elif self.mode == 'erase':
             self.erase_confirm(d)
         else:
-            free = f' Es gibt nur {d["free_h"]} freien Platz (mindestens {D.MIN_GB} GB nötig).' if d['free_h'] else ''
-            hint = ' Tipp: In Windows unter „Datenträgerverwaltung → Volume verkleinern“ Platz freigeben, dann kann Toravo daneben.' if d['windows'] else ''
-            self.disk_info.set_markup(f'Auf <b>{d["model"]}</b> ist schon etwas ({GLib.markup_escape_text(d["content"])}).{free}{hint}')
+            free = tr(f' Es gibt nur {d["free_h"]} freien Platz (mindestens {D.MIN_GB} GB nötig).',
+                      f' There is only {d["free_h"]} of free space (at least {D.MIN_GB} GB needed).') if d['free_h'] else ''
+            hint = tr(' Tipp: In Windows unter „Datenträgerverwaltung → Volume verkleinern“ Platz freigeben, dann kann Toravo daneben.',
+                      ' Tip: free up space in Windows under “Disk Management → Shrink Volume”, then Toravo fits next to it.') if d['windows'] else ''
+            self.disk_info.set_markup(tr(f'Auf <b>{d["model"]}</b> ist schon etwas', f'<b>{d["model"]}</b> is not empty') +
+                                      f' ({GLib.markup_escape_text(d["content"])}).{free}{hint}')
             self.set_next(False)
             self.add_erase_option(d)
 
     def add_erase_option(self, d):
-        b = Gtk.Button(label=f'Ganze Platte löschen und nur Toravo OS installieren …')
+        b = Gtk.Button(label=tr('Ganze Platte löschen und nur Toravo OS installieren …', 'Erase the whole disk and install only Toravo OS …'))
         b.add_css_class('tos-danger')
         b.set_halign(Gtk.Align.START)
         b.connect('clicked', lambda *_: (setattr(self, 'mode', 'erase'), self.describe()))
         self.erase_box.append(b)
 
     def erase_confirm(self, d):
-        self.disk_info.set_markup(f'<span foreground="{theme.T["red"]}"><b>Achtung: Alles auf {d["model"]} ({d["size_h"]}) wird gelöscht</b></span> – '
-                                  f'{GLib.markup_escape_text(d["content"])}. Das kann nicht rückgängig gemacht werden.')
+        warn = tr(f'Achtung: Alles auf {d["model"]} ({d["size_h"]}) wird gelöscht', f'Warning: everything on {d["model"]} ({d["size_h"]}) will be erased')
+        self.disk_info.set_markup(f'<span foreground="{theme.T["red"]}"><b>{warn}</b></span> – '
+                                  f'{GLib.markup_escape_text(d["content"])}. ' + tr('Das kann nicht rückgängig gemacht werden.', 'This cannot be undone.'))
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         box.add_css_class('tos-panel')
         inner = vbox(8, margin=16)
-        inner.append(label(f'Zum Bestätigen den Namen der Platte eintippen:  {d["name"]}', 'tos-body'))
-        e = Gtk.Entry(placeholder_text='Plattenname')
+        inner.append(label(tr('Zum Bestätigen den Namen der Platte eintippen:', 'Type the disk name to confirm:') + f'  {d["name"]}', 'tos-body'))
+        e = Gtk.Entry(placeholder_text=tr('Plattenname', 'Disk name'))
         e.connect('changed', lambda en: self.set_next(en.get_text().strip() == d['name'], danger=True))
         inner.append(e)
-        cancel = Gtk.Button(label='Doch nicht löschen')
+        cancel = Gtk.Button(label=tr('Doch nicht löschen', 'Don’t erase'))
         cancel.add_css_class('tos-link')
         cancel.set_halign(Gtk.Align.START)
         cancel.connect('clicked', lambda *_: (setattr(self, 'mode', 'empty' if d['empty'] else ('alongside' if d['can_alongside'] else None)), self.describe()))
@@ -385,26 +427,26 @@ class Installer(Gtk.ApplicationWindow):
         nb = self.pages.get_child_by_name('disk').next_btn if self.pages.get_child_by_name('disk') else None
         if nb:
             nb.set_sensitive(ok)
-            nb.set_label('Löschen bestätigt – weiter' if danger else 'Weiter')
+            nb.set_label(tr('Löschen bestätigt – weiter', 'Erase confirmed – next') if danger else tr('Weiter', 'Next'))
 
     # -------------------------------------------------------------- 3 user
     def p_user(self):
         c = vbox(14)
         c.set_size_request(520, -1)
         c.set_halign(Gtk.Align.START)
-        self.name_e = Gtk.Entry(placeholder_text='Dein Name, z. B. Alex')
+        self.name_e = Gtk.Entry(placeholder_text=tr('Dein Name, z. B. Alex', 'Your name, e.g. Alex'))
         self.pw1 = Gtk.PasswordEntry(show_peek_icon=True)
-        self.pw1.set_property('placeholder-text', 'Passwort')
+        self.pw1.set_property('placeholder-text', tr('Passwort', 'Password'))
         self.pw2 = Gtk.PasswordEntry()
-        self.pw2.set_property('placeholder-text', 'Passwort wiederholen')
-        self.auto = Gtk.CheckButton(label='Ohne Passwort-Abfrage starten (automatisch anmelden)')
+        self.pw2.set_property('placeholder-text', tr('Passwort wiederholen', 'Repeat password'))
+        self.auto = Gtk.CheckButton(label=tr('Ohne Passwort-Abfrage starten (automatisch anmelden)', 'Start without asking for the password (log in automatically)'))
         self.user_hint = label('', 'tos-small')
-        for w in (micro('NAME'), self.name_e, micro('PASSWORT'), self.pw1, self.pw2, self.auto, self.user_hint):
+        for w in (micro('NAME'), self.name_e, micro(tr('PASSWORT', 'PASSWORD')), self.pw1, self.pw2, self.auto, self.user_hint):
             c.append(w)
         for w in (self.name_e, self.pw1, self.pw2):
             w.connect('changed', lambda *_: self.validate_user())
-        f = self.frame(3, 'Wer bist du?', 'Nur Name und Passwort – den Rest macht Toravo.', c,
-                       back=lambda: self.pages.set_visible_child_name('disk'), nxt=self.start, nxt_label='Installieren')
+        f = self.frame(3, tr('Wer bist du?', 'Who are you?'), tr('Nur Name und Passwort – den Rest macht Toravo.', 'Just name and password – Toravo does the rest.'), c,
+                       back=lambda: self.pages.set_visible_child_name('disk'), nxt=self.start, nxt_label=tr('Installieren', 'Install'))
         self.inst_btn = f.next_btn
         self.inst_btn.set_sensitive(False)
         return f
@@ -418,11 +460,11 @@ class Installer(Gtk.ApplicationWindow):
         msg, ok = '', False
         if n:
             login = login_from(n)
-            msg = f'Anmeldename: {login}  ·  Rechnername: {login}-toravo'
+            msg = tr(f'Anmeldename: {login}  ·  Rechnername: {login}-toravo', f'Username: {login}  ·  Computer name: {login}-toravo')
         if p1 and len(p1) < 4:
-            msg += '   ·   Passwort: mindestens 4 Zeichen'
+            msg += tr('   ·   Passwort: mindestens 4 Zeichen', '   ·   Password: at least 4 characters')
         elif p1 and p2 and p1 != p2:
-            msg += '   ·   Passwörter sind verschieden'
+            msg += tr('   ·   Passwörter sind verschieden', '   ·   Passwords do not match')
         ok = bool(n and p1 and len(p1) >= 4 and p1 == p2)
         self.user_hint.set_text(msg)
         self.inst_btn.set_sensitive(ok)
@@ -432,13 +474,13 @@ class Installer(Gtk.ApplicationWindow):
         c = vbox(16)
         self.wave = Wave(bars=150, height=110, seed=9)
         c.append(self.wave)
-        self.pmsg = label('Starte …', 'tos-mono')
+        self.pmsg = label(tr('Starte …', 'Starting …'), 'tos-mono')
         c.append(self.pmsg)
         self.pct = label('0 %', 'tos-h1')
         c.append(self.pct)
         self.done_box = hbox(14)
         c.append(self.done_box)
-        f = self.frame(0, 'Toravo OS wird installiert …', 'Lehn dich zurück. Das dauert ein paar Minuten.', c)
+        f = self.frame(0, tr('Toravo OS wird installiert …', 'Installing Toravo OS …'), tr('Lehn dich zurück. Das dauert ein paar Minuten.', 'Sit back. This takes a few minutes.'), c)
         self.prog_title = f.title_label
         return f
 
@@ -481,22 +523,23 @@ class Installer(Gtk.ApplicationWindow):
         elif ev.get('ev') == 'done':
             if ev.get('ok'):
                 self.wave.set_progress(1.0)
-                self.pct.set_text('Fertig.')
-                self.prog_title.set_text('Toravo OS ist installiert.')
-                self.pmsg.set_text('Toravo OS ist installiert. Stick abziehen und neu starten – beim ersten Start richtet Toravo Setup deine KI-Werkzeuge ein.')
-                rb = Gtk.Button(label='Neu starten')
+                self.pct.set_text(tr('Fertig.', 'Done.'))
+                self.prog_title.set_text(tr('Toravo OS ist installiert.', 'Toravo OS is installed.'))
+                self.pmsg.set_text(tr('Toravo OS ist installiert. Stick abziehen und neu starten – beim ersten Start richtet Toravo Setup deine KI-Werkzeuge ein.',
+                                       'Toravo OS is installed. Remove the USB stick and restart – on first start Toravo Setup sets up your AI tools.'))
+                rb = Gtk.Button(label=tr('Neu starten', 'Restart'))
                 rb.add_css_class('tos-primary')
                 rb.connect('clicked', lambda *_: subprocess.Popen(['systemctl', 'reboot']))
-                tb = Gtk.Button(label='Weiter ausprobieren')
+                tb = Gtk.Button(label=tr('Weiter ausprobieren', 'Keep trying it'))
                 tb.add_css_class('tos-big')
                 tb.connect('clicked', lambda *_: self.close())
                 self.done_box.append(rb)
                 self.done_box.append(tb)
             else:
-                self.pct.set_text('Abgebrochen')
+                self.pct.set_text(tr('Abgebrochen', 'Aborted'))
                 self.pct.add_css_class('tos-warn')
-                self.pmsg.set_text('Fehler: ' + ev.get('msg', '') + '  (Protokoll: /var/log/toravo-install.log)')
-                bb = Gtk.Button(label='Zurück')
+                self.pmsg.set_text(tr('Fehler: ', 'Error: ') + ev.get('msg', '') + tr('  (Protokoll: /var/log/toravo-install.log)', '  (log: /var/log/toravo-install.log)'))
+                bb = Gtk.Button(label=tr('Zurück', 'Back'))
                 bb.add_css_class('tos-big')
                 bb.connect('clicked', lambda *_: self.pages.set_visible_child_name('disk'))
                 self.done_box.append(bb)

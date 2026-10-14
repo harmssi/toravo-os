@@ -1,8 +1,10 @@
 #!/bin/bash
-choice=$(printf '󰌾  Sperren\n󰍃  Abmelden\n󰜉  Neustart\n󰐥  Ausschalten\n' | fuzzel --dmenu --prompt '❯ ' --lines 4 --width 26)
+. /usr/lib/toravo/locale.sh
+if [ "$(toravo_ui)" = en ]; then L=(Lock "Log out" Restart "Shut down"); else L=(Sperren Abmelden Neustart Ausschalten); fi
+choice=$(printf '󰌾  %s\n󰍃  %s\n󰜉  %s\n󰐥  %s\n' "${L[@]}" | fuzzel --dmenu --prompt '❯ ' --lines 4 --width 26)
 case "$choice" in
-  *Sperren) loginctl lock-session ;;
-  *Abmelden) if [ -n "$HYPRLAND_INSTANCE_SIGNATURE" ]; then hyprctl dispatch 'hl.dsp.exit()'; else labwc --exit 2>/dev/null || loginctl terminate-session "$XDG_SESSION_ID"; fi ;;
-  *Neustart) systemctl reboot ;;
-  *Ausschalten) systemctl poweroff ;;
+  *"${L[0]}") loginctl lock-session ;;
+  *"${L[1]}") if [ -n "$HYPRLAND_INSTANCE_SIGNATURE" ]; then hyprctl dispatch 'hl.dsp.exit()'; else labwc --exit 2>/dev/null || loginctl terminate-session "$XDG_SESSION_ID"; fi ;;
+  *"${L[2]}") systemctl reboot ;;
+  *"${L[3]}") systemctl poweroff ;;
 esac

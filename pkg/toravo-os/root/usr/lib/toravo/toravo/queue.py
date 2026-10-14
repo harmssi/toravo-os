@@ -5,6 +5,7 @@ States: queued -> running -> done | failed | needs_tool | cancelled. Dependencie
 CLI: toravo-queue list [--json] | add <kind> <title> [params-json] | cancel <id> | retry <id> | clear-done | run
 """
 import json, os, signal, subprocess, sys, threading, time, traceback, uuid
+from .theme import tr
 
 QDIR = os.path.expanduser('~/.local/share/toravo/queue')
 ACTIVE = ('queued', 'running')
@@ -45,7 +46,7 @@ def jobs():
 
 def add(kind, title, params=None, after=(), subject='', plan_id=None):
     j = {'id': uuid.uuid4().hex[:12], 'kind': kind, 'title': title, 'params': params or {}, 'after': list(after), 'subject': subject,
-         'plan_id': plan_id, 'state': 'queued', 'progress': 0.0, 'step': 'wartet', 'created': time.time(), 'outputs': [], 'error': ''}
+         'plan_id': plan_id, 'state': 'queued', 'progress': 0.0, 'step': tr('wartet', 'waiting'), 'created': time.time(), 'outputs': [], 'error': ''}
     save(j)
     return j
 
@@ -119,7 +120,7 @@ def run_forever():
     os.makedirs(QDIR, exist_ok=True)
     for j in jobs():  # crashed while running -> queue again
         if j['state'] == 'running':
-            update(j, state='queued', step='neu eingereiht nach Neustart')
+            update(j, state='queued', step=tr('neu eingereiht nach Neustart', 're-queued after restart'))
     while True:
         alljobs = jobs()
         nxt = None
@@ -128,7 +129,7 @@ def run_forever():
                 continue
             r = ready(j, alljobs)
             if r == 'blocked':
-                update(j, state='failed', error='Vorheriger Schritt fehlgeschlagen', step='übersprungen')
+                update(j, state='failed', error=tr('Vorheriger Schritt fehlgeschlagen', 'Previous step failed'), step=tr('übersprungen', 'skipped'))
                 continue
             if r:
                 nxt = j
@@ -138,22 +139,22 @@ def run_forever():
             continue
         inhibit = None
         try:
-            inhibit = subprocess.Popen(['systemd-inhibit', '--what=sleep:idle', '--who=Toravo', '--why=Render-Job läuft', 'sleep', 'infinity'],
+            inhibit = subprocess.Popen(['systemd-inhibit', '--what=sleep:idle', '--who=Toravo', '--why=' + tr('Render-Job läuft', 'Render job running'), 'sleep', 'infinity'],
                                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except OSError:
             pass
-        update(nxt, state='running', started=time.time(), step='startet')
+        update(nxt, state='running', started=time.time(), step=tr('startet', 'starting'))
         try:
             deps = [load(a) for a in nxt.get('after', []) if os.path.exists(_path(a))]
             res = executors.run(nxt, deps, Progress(nxt))
             st = res.get('state', 'done')
             update(nxt, state=st, progress=1.0 if st == 'done' else nxt.get('progress', 0), outputs=res.get('outputs', []),
-                   step=res.get('step', 'fertig' if st == 'done' else nxt.get('step')), error=res.get('error', ''), finished=time.time())
+                   step=res.get('step', tr('fertig', 'done') if st == 'done' else nxt.get('step')), error=res.get('error', ''), finished=time.time())
             notify(nxt)
         except Cancelled:
-            update(nxt, state='cancelled', step='abgebrochen', finished=time.time())
+            update(nxt, state='cancelled', step=tr('abgebrochen', 'cancelled'), finished=time.time())
         except Exception as e:  # noqa: BLE001
-            update(nxt, state='failed', error=f'{type(e).__name__}: {e}', step='Fehler', finished=time.time(),
+            update(nxt, state='failed', error=f'{type(e).__name__}: {e}', step=tr('Fehler', 'error'), finished=time.time(),
                    trace=traceback.format_exc()[-2000:])
             notify(nxt)
         finally:
@@ -163,11 +164,11 @@ def run_forever():
 
 def notify(job):
     if job['state'] == 'done':
-        title, body = 'Fertig: ' + job['title'], ', '.join(os.path.basename(o) for o in job.get('outputs', [])[:3])
+        title, body = tr('Fertig: ', 'Done: ') + job['title'], ', '.join(os.path.basename(o) for o in job.get('outputs', [])[:3])
     elif job['state'] == 'needs_tool':
-        title, body = 'Werkzeug fehlt: ' + job['title'], job.get('error', '')
+        title, body = tr('Werkzeug fehlt: ', 'Tool missing: ') + job['title'], job.get('error', '')
     else:
-        title, body = 'Fehler: ' + job['title'], job.get('error', '')[:200]
+        title, body = tr('Fehler: ', 'Error: ') + job['title'], job.get('error', '')[:200]
     try:
         subprocess.Popen(['notify-send', '-a', 'Toravo', title, body], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except OSError:
@@ -191,10 +192,10 @@ def main():
         print(j['id'])
     elif cmd == 'cancel':
         j = load(a[1])
-        update(j, state='cancelled', step='abgebrochen')
+        update(j, state='cancelled', step=tr('abgebrochen', 'cancelled'))
     elif cmd == 'retry':
         j = load(a[1])
-        update(j, state='queued', step='erneut eingereiht', error='', progress=0.0)
+        update(j, state='queued', step=tr('erneut eingereiht', 're-queued'), error='', progress=0.0)
     elif cmd == 'clear-done':
         for j in jobs():
             if j['state'] in ('done', 'cancelled'):

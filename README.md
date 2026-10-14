@@ -179,6 +179,15 @@ Nichts davon liegt im ISO; Toravo Setup lädt es nach (`~/Toravo/AI`). Lizenzen 
 | NVIDIA-Treiber | proprietär (Kernelmodul open) | |
 | Hyprland | BSD-3 · Waybar MIT · greetd GPL-3 · ReGreet GPL-3 · labwc GPL-2 | |
 
+## Sprache / Language
+
+Alle Toravo-Oberflächen sind zweisprachig: Deutsch bei `de_*`-Locale, sonst Englisch (`toravo.theme.tr()`, Shell: `/usr/lib/toravo/locale.sh`).
+All Toravo apps are bilingual: German for `de_*` locales, English otherwise.
+
+- Installiertes System: `/etc/locale.conf` (vom Installer) oder pro Benutzer `~/.config/locale.conf`, z. B. `LANG=en_US.UTF-8`; danach neu anmelden.
+- Nur Toravo-Apps umstellen: `TORAVO_LANG=en` in der Sitzungsumgebung.
+- Live-ISO: Starteintrag „Toravo OS (English)“ (englische Oberfläche, US-Tastatur); im Installer per „ändern“ → Sprache, die Oberfläche folgt sofort.
+
 ## Command Bar & Agent-Schnittstelle
 
 - Tasten: **Super + Leertaste** öffnen/schließen · tippen filtert · **Tab** = Plan aus dem Freitext · **Enter** = ausführen · **Esc** = zurück/schließen.

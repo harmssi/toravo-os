@@ -1,6 +1,7 @@
 [Desktop Entry]
 Name=Toravo Command Bar
-Comment=Sag einfach, was du willst (Super + Leertaste)
+Comment=Just say what you want (Super + Space)
+Comment[de]=Sag einfach, was du willst (Super + Leertaste)
 Exec=toravo-commandbar
 Icon=/usr/share/toravo/logo/toravo-t-128.png
 Terminal=false

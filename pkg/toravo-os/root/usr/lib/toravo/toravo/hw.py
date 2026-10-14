@@ -4,6 +4,7 @@ Used by the installer (drivers), toravo-session (Lite mode) and Toravo Setup (wh
 CLI: toravo-hw [--json]
 """
 import glob, json, os, re, shutil, subprocess, sys
+from .theme import tr
 
 VENDORS = {'0x10de': 'nvidia', '0x1002': 'amd', '0x8086': 'intel', '0x1af4': 'virtio', '0x1234': 'qemu', '0x15ad': 'vmware',
            '0x80ee': 'virtualbox', '0x1a03': 'aspeed', '0x102b': 'matrox', '0x1414': 'hyperv'}
@@ -67,7 +68,7 @@ def gpus():
                     'boot_vga': _read(dev + '/boot_vga') == '1', 'vram_gb': round(vram, 1),
                     'render_node': bool(glob.glob(dev + '/drm/renderD*'))})
     if not out:  # no DRM at all (very old / headless): CPU profile
-        out.append({'card': '', 'vendor': 'none', 'device_id': '', 'driver': '', 'name': 'keine GPU erkannt', 'boot_vga': True, 'vram_gb': 0,
+        out.append({'card': '', 'vendor': 'none', 'device_id': '', 'driver': '', 'name': tr('keine GPU erkannt', 'no GPU detected'), 'boot_vga': True, 'vram_gb': 0,
                     'render_node': False})
     return out
 
@@ -143,7 +144,8 @@ def detect():
         if nvidia_supported(name):
             profile = 'nvidia'
         else:
-            notes.append('NVIDIA-Karte älter als Turing: aktueller Treiber unterstützt sie nicht – läuft mit nouveau im CPU-Profil.')
+            notes.append(tr('NVIDIA-Karte älter als Turing: aktueller Treiber unterstützt sie nicht – läuft mit nouveau im CPU-Profil.',
+                             'NVIDIA card older than Turing: the current driver does not support it – runs on nouveau in the CPU profile.'))
     if profile == 'cpu' and amd:
         big = max(amd, key=lambda g: g['vram_gb'] or table_vram(g['name']))
         v = big['vram_gb'] or table_vram(big['name'])
@@ -151,7 +153,7 @@ def detect():
             profile, chosen, vram = 'amd', big, v
         else:
             chosen = big
-            notes.append('AMD-iGPU / wenig VRAM: Lite-KI (CPU-Modelle), Video-Encoding per VAAPI.')
+            notes.append(tr('AMD-iGPU / wenig VRAM: Lite-KI (CPU-Modelle), Video-Encoding per VAAPI.', 'AMD iGPU / little VRAM: Lite AI (CPU models), video encoding via VAAPI.'))
     if profile == 'cpu' and intel:
         arc = [g for g in intel if re.search(r'Arc|DG2|Battlemage|B5\d0|A[357]\d0', g['name'], re.I)]
         if arc:
@@ -159,7 +161,7 @@ def detect():
             vram = table_vram(arc[0]['name']) or 8
         else:
             chosen = chosen or intel[0]
-            notes.append('Intel-iGPU: Lite-KI (CPU-Modelle), Video-Encoding per QSV/VAAPI.')
+            notes.append(tr('Intel-iGPU: Lite-KI (CPU-Modelle), Video-Encoding per QSV/VAAPI.', 'Intel iGPU: Lite AI (CPU models), video encoding via QSV/VAAPI.'))
     chosen = chosen or (dedicated[0] if dedicated else gl[0])
     tier = 'high' if vram >= 16 else 'mid' if vram >= 8 else 'low'
     if profile == 'cpu':
@@ -197,10 +199,10 @@ def main():
     if '--json' in sys.argv:
         print(json.dumps(info, indent=2, ensure_ascii=False))
         return
-    print(f"Profil: {info['profile']}  Stufe: {info['tier']}  VRAM: {info['vram_gb']} GB  GPU: {info['gpu']}")
-    print(f"3D-Beschleunigung: {'ja' if info['accel3d'] else 'nein (Lite-Modus)'}  RAM: {info['ram_gb']} GB  Encoder: {', '.join(info['encoders'])}")
+    print(tr('Profil', 'Profile') + f": {info['profile']}  " + tr('Stufe', 'Tier') + f": {info['tier']}  VRAM: {info['vram_gb']} GB  GPU: {info['gpu']}")
+    print(tr('3D-Beschleunigung', '3D acceleration') + f": {tr('ja', 'yes') if info['accel3d'] else tr('nein (Lite-Modus)', 'no (Lite mode)')}  RAM: {info['ram_gb']} GB  Encoder: {', '.join(info['encoders'])}")
     for n in info['notes']:
-        print('Hinweis:', n)
+        print(tr('Hinweis:', 'Note:'), n)
 
 
 if __name__ == '__main__':

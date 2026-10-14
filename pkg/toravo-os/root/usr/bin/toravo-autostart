@@ -1,8 +1,11 @@
 #!/bin/bash
 # Started by Hyprland (hl.on "hyprland.start") or labwc (autostart). Brings up the Toravo desktop.
 comp="${1:-hyprland}"
+. /usr/lib/toravo/locale.sh
+[ -n "${LANG:-}" ] || toravo_load_locale
+# LANG/LC_* also for the user services (render queue, Studio Local) – they show texts in the session language
 dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE HYPRLAND_INSTANCE_SIGNATURE \
-    TORAVO_LITE GSK_RENDERER LIBGL_ALWAYS_SOFTWARE QT_QPA_PLATFORMTHEME >/dev/null 2>&1
+    LANG LC_ALL LC_MESSAGES TORAVO_LANG TORAVO_LITE GSK_RENDERER LIBGL_ALWAYS_SOFTWARE QT_QPA_PLATFORMTHEME >/dev/null 2>&1
 gsettings set org.gnome.desktop.interface gtk-theme 'adw-gtk3-dark' 2>/dev/null
 gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' 2>/dev/null
 gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark' 2>/dev/null
@@ -12,12 +15,17 @@ gsettings set org.gnome.desktop.interface cursor-theme 'Adwaita' 2>/dev/null
 
 wall=/usr/share/toravo/wallpaper/toravo-3840x2160.png
 swaybg -m fill -i "$wall" >/dev/null 2>&1 &
+wb=/usr/share/toravo/waybar/config.jsonc; [ "$comp" = hyprland ] || wb=/usr/share/toravo/waybar/config-lite.jsonc
+if [ "$(toravo_ui)" = en ]; then  # 14.10.2026: English tooltips + clock
+    en="${XDG_RUNTIME_DIR:-/tmp}/toravo-waybar.jsonc"
+    sed -e 's/Command Bar öffnen  (Super + Leertaste)/Open Command Bar  (Super + Space)/' \
+        -e 's/Sperren · Abmelden · Neustart · Ausschalten/Lock · Log out · Restart · Shut down/' \
+        -e 's/{:%A, %d. %B %Y}/{:%A, %B %d, %Y}/' -e 's/"locale": "de_DE.UTF-8"/"locale": "en_US.UTF-8"/' "$wb" > "$en" && wb="$en"
+fi
 if [ -e "$HOME/.config/waybar/config" ] || [ -e "$HOME/.config/waybar/config.jsonc" ]; then
     waybar >/dev/null 2>&1 &
-elif [ "$comp" = hyprland ]; then
-    waybar -c /usr/share/toravo/waybar/config.jsonc -s /usr/share/toravo/waybar/style.css >/dev/null 2>&1 &
 else
-    waybar -c /usr/share/toravo/waybar/config-lite.jsonc -s /usr/share/toravo/waybar/style.css >/dev/null 2>&1 &
+    waybar -c "$wb" -s /usr/share/toravo/waybar/style.css >/dev/null 2>&1 &
 fi
 mako >/dev/null 2>&1 &
 hypridle >/dev/null 2>&1 &

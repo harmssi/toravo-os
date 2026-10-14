@@ -5,10 +5,12 @@ import gi
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk, GLib, Gio
 from . import theme, stack, hw
+from .theme import tr
 from .widgets import Wave, logo, wordmark, label, micro, chip, vbox, hbox, spacer
 
 APP_ID = 'de.toravo.Setup'
-PROFILE_NAMES = {'nvidia': 'NVIDIA · CUDA · NVENC', 'amd': 'AMD · ROCm/Vulkan · VAAPI', 'intel': 'Intel · oneAPI/Vulkan · QSV', 'cpu': 'Nur CPU · Lite'}
+DONE, SKIP, FAIL, RESTART = tr('FERTIG', 'DONE'), tr('SCHON DA', 'ALREADY THERE'), tr('FEHLER', 'ERROR'), tr('Neu starten', 'Restart')
+PROFILE_NAMES = {'nvidia': 'NVIDIA · CUDA · NVENC', 'amd': 'AMD · ROCm/Vulkan · VAAPI', 'intel': 'Intel · oneAPI/Vulkan · QSV', 'cpu': tr('Nur CPU · Lite', 'CPU only · Lite')}
 
 
 def online():
@@ -39,10 +41,12 @@ class Setup(Gtk.ApplicationWindow):
     def page_overview(self):
         info, plan = self.info, self.plan
         root = vbox(18, margin=34)
-        head = hbox(16, logo(48), vbox(2, micro('TORAVO SETUP', 'violet'), label('Dein KI-Studio einrichten.', 'tos-h1')))
+        head = hbox(16, logo(48), vbox(2, micro('TORAVO SETUP', 'violet'), label(tr('Dein KI-Studio einrichten.', 'Set up your AI studio.'), 'tos-h1')))
         root.append(head)
-        root.append(label('Toravo hat deinen Rechner erkannt und wählt passende Modelle. Alles läuft lokal auf deiner Hardware – '
-                          'Modelle werden jetzt geladen, nicht mitgeliefert.', 'tos-body', wrap=True))
+        root.append(label(tr('Toravo hat deinen Rechner erkannt und wählt passende Modelle. Alles läuft lokal auf deiner Hardware – '
+                             'Modelle werden jetzt geladen, nicht mitgeliefert.',
+                             'Toravo detected your machine and picks models that fit. Everything runs locally on your hardware – '
+                             'models are downloaded now, not shipped with the system.'), 'tos-body', wrap=True))
         # hardware tile
         tile = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=28)
         tile.add_css_class('tos-panel')
@@ -59,17 +63,17 @@ class Setup(Gtk.ApplicationWindow):
         inner.append(vbox(4, micro('GPU'), label(info.get('gpu') or '—', 'tos-h2'), label(PROFILE_NAMES[info['profile']], 'tos-label-cyan')))
         inner.append(stat('VRAM', info['vram_gb'] or '—', 'GB'))
         inner.append(stat('RAM', info['ram_gb'], 'GB'))
-        inner.append(stat('STUFE', {'high': '≥ 16', 'mid': '8–16', 'low': '< 8'}[info['tier']], 'GB'))
+        inner.append(stat(tr('STUFE', 'TIER'), {'high': '≥ 16', 'mid': '8–16', 'low': '< 8'}[info['tier']], 'GB'))
         inner.append(vbox(4, micro('ENCODER'), label(' · '.join(info['encoders'][:3]), 'tos-mono')))
         tile.append(inner)
         root.append(tile)
         for n in info.get('notes', []):
-            root.append(label('Hinweis: ' + n, 'tos-small tos-warn', wrap=True))
+            root.append(label(tr('Hinweis: ', 'Note: ') + n, 'tos-small tos-warn', wrap=True))
         # tools table
         sc = Gtk.ScrolledWindow(vexpand=True)
         lst = vbox(6)
         sysd = plan['system']
-        lst.append(self.tool_row('TREIBER', sysd['title'], ', '.join(sysd['packages'][:4]) + (' …' if len(sysd['packages']) > 4 else ''),
+        lst.append(self.tool_row(tr('TREIBER', 'DRIVERS'), sysd['title'], ', '.join(sysd['packages'][:4]) + (' …' if len(sysd['packages']) > 4 else ''),
                                  sysd['license'], sysd['size_gb'], 'on'))
         for k, o in sysd['optional'].items():
             sw = Gtk.Switch(active=o['enabled'], valign=Gtk.Align.CENTER)
@@ -81,7 +85,7 @@ class Setup(Gtk.ApplicationWindow):
         for t in plan['tools']:
             size = sum(self.stack_def['models'][m].get('size_gb', 0) for m in t['models']) + \
                 sum(self.stack_def['components'][c].get('size_gb', 0) for c in t['components'])
-            lic = ', '.join(sorted({self.stack_def['models'][m]['license'].split(' (')[0] for m in t['models']}))
+            lic = ', '.join(sorted({theme.loc(self.stack_def['models'][m], 'license').split(' (')[0] for m in t['models']}))
             state = 'off' if t['off'] else ('lite' if t['lite'] else 'on')
             lst.append(self.tool_row(t['area'], t['title'], t['label'] + (f" – {t['note']}" if t['note'] else ''), lic, size, state))
         for t in self.stack_def['tools']:
@@ -90,7 +94,7 @@ class Setup(Gtk.ApplicationWindow):
                     sw = Gtk.Switch(active=False, valign=Gtk.Align.CENTER)
                     sw.connect('notify::active', self.on_extra, o['id'])
                     size = sum(self.stack_def['models'][m].get('size_gb', 0) for m in o['models'])
-                    lst.append(self.tool_row('OPTIONAL', o['label'], 'zusätzlich zum Standard', self.stack_def['models'][o['models'][0]]['license'].split(' (')[0],
+                    lst.append(self.tool_row('OPTIONAL', theme.loc(o, 'label'), tr('zusätzlich zum Standard', 'in addition to the default'), theme.loc(self.stack_def['models'][o['models'][0]], 'license').split(' (')[0],
                                              size, 'switch', sw))
         sc.set_child(lst)
         root.append(sc)
@@ -98,14 +102,14 @@ class Setup(Gtk.ApplicationWindow):
         self.total_lbl = label('', 'tos-body')
         self.update_total()
         self.net_lbl = label('', 'tos-small tos-warn')
-        later = Gtk.Button(label='Später')
+        later = Gtk.Button(label=tr('Später', 'Later'))
         later.add_css_class('tos-big')
         later.connect('clicked', self.on_later)
         self.pw = Gtk.PasswordEntry(show_peek_icon=True)
-        self.pw.set_property('placeholder-text', 'Dein Passwort (für Treiber & Programme)')
+        self.pw.set_property('placeholder-text', tr('Dein Passwort (für Treiber & Programme)', 'Your password'))
         self.pw.set_size_request(300, -1)
         self.need_pw = not os.path.isdir('/run/archiso') and subprocess.run(['sudo', '-n', 'true'], capture_output=True).returncode != 0
-        go = Gtk.Button(label='Einrichten')
+        go = Gtk.Button(label=tr('Einrichten', 'Set up'))
         go.add_css_class('tos-primary')
         go.connect('clicked', self.on_go)
         foot = hbox(14, vbox(2, self.total_lbl, self.net_lbl), spacer(False))
@@ -116,7 +120,8 @@ class Setup(Gtk.ApplicationWindow):
         foot.append(go)
         root.append(foot)
         if not online():
-            self.net_lbl.set_text('Keine Internetverbindung – bitte WLAN/Kabel verbinden (oben rechts im Balken).')
+            self.net_lbl.set_text(tr('Keine Internetverbindung – bitte WLAN/Kabel verbinden (oben rechts im Balken).',
+                                     'No internet connection – please connect Wi-Fi or cable (top right in the bar).'))
         return root
 
     def tool_row(self, area, title, detail, lic, size, state, widget=None):
@@ -136,7 +141,7 @@ class Setup(Gtk.ApplicationWindow):
         if widget is not None:
             inner.append(widget)
         else:
-            st = {'on': ('AN', 'tos-label-cyan'), 'lite': ('LITE', 'tos-label'), 'off': ('AUS · CLOUD-OPTIONAL', 'tos-label-coral')}[state]
+            st = {'on': (tr('AN', 'ON'), 'tos-label-cyan'), 'lite': ('LITE', 'tos-label'), 'off': (tr('AUS · CLOUD-OPTIONAL', 'OFF · CLOUD OPTIONAL'), 'tos-label-coral')}[state]
             l = label(st[0], st[1])
             l.set_size_request(150, -1)
             l.set_xalign(1)
@@ -150,22 +155,23 @@ class Setup(Gtk.ApplicationWindow):
         self.update_total()
 
     def update_total(self):
-        self.total_lbl.set_markup(f'Download und Installation: <b>ca. {self.plan["total_gb"]:.0f} GB</b> · Ziel: '
+        self.total_lbl.set_markup(tr('Download und Installation: <b>ca. ', 'Download and install: <b>approx. ') + f'{self.plan["total_gb"]:.0f} GB</b> · ' + tr('Ziel: ', 'Target: ') +
                                   f'<span font_family="JetBrains Mono">{GLib.markup_escape_text(self.plan["base_dir"])}</span>')
 
     def on_later(self, *_):
         os.makedirs(os.path.expanduser('~/.config/toravo'), exist_ok=True)
         open(os.path.expanduser('~/.config/toravo/setup-later'), 'w').close()
-        subprocess.Popen(['notify-send', '-a', 'Toravo', 'Toravo Setup', 'Jederzeit über die Command Bar (Super + Leertaste) → „Toravo Setup“.'])
+        subprocess.Popen(['notify-send', '-a', 'Toravo', 'Toravo Setup', tr('Jederzeit über die Command Bar (Super + Leertaste) → „Toravo Setup“.',
+                                                                       'Any time via the Command Bar (Super + Space) → “Toravo Setup”.')])
         self.close()
 
     # ---------------------------------------------------------------- page 2
     def page_install(self):
         root = vbox(16, margin=34)
-        root.append(hbox(16, logo(44), vbox(2, micro('TORAVO SETUP · LOCAL', 'violet'), label('Richte dein Studio ein …', 'tos-h1'))))
+        root.append(hbox(16, logo(44), vbox(2, micro('TORAVO SETUP · LOCAL', 'violet'), label(tr('Richte dein Studio ein …', 'Setting up your studio …'), 'tos-h1'))))
         self.overall = Wave(bars=140, height=84, seed=5)
         root.append(self.overall)
-        self.overall_lbl = label('Starte …', 'tos-mono')
+        self.overall_lbl = label(tr('Starte …', 'Starting …'), 'tos-mono')
         root.append(self.overall_lbl)
         sc = Gtk.ScrolledWindow(vexpand=True)
         self.items_box = vbox(6)
@@ -173,12 +179,12 @@ class Setup(Gtk.ApplicationWindow):
         root.append(sc)
         self.logbuf = Gtk.TextBuffer()
         tv = Gtk.TextView(buffer=self.logbuf, editable=False, monospace=True)
-        exp = Gtk.Expander(label='Protokoll')
+        exp = Gtk.Expander(label=tr('Protokoll', 'Log'))
         lsc = Gtk.ScrolledWindow(min_content_height=140)
         lsc.set_child(tv)
         exp.set_child(lsc)
         root.append(exp)
-        self.done_btn = Gtk.Button(label='Fertig')
+        self.done_btn = Gtk.Button(label=tr('Fertig', 'Done'))
         self.done_btn.add_css_class('tos-primary')
         self.done_btn.set_sensitive(False)
         self.done_btn.connect('clicked', self.on_done)
@@ -194,7 +200,7 @@ class Setup(Gtk.ApplicationWindow):
         top.set_margin_top(10); top.set_margin_start(16); top.set_margin_end(16)
         t = label(title, 'tos-h2')
         t.set_hexpand(True)
-        st = label('wartet', 'tos-label')
+        st = label(tr('WARTET', 'WAITING'), 'tos-label')
         top.append(t); top.append(st)
         wv = Wave(bars=110, height=26, seed=abs(hash(iid)) % 97)
         wv.set_margin_start(16); wv.set_margin_end(16)
@@ -211,7 +217,7 @@ class Setup(Gtk.ApplicationWindow):
         if self.need_pw:
             chk = subprocess.run(['sudo', '-S', '-p', '', '-v'], input=(pw or '') + '\n', capture_output=True, text=True)
             if chk.returncode != 0:
-                self.net_lbl.set_text('Passwort stimmt nicht.')
+                self.net_lbl.set_text(tr('Passwort stimmt nicht.', 'Wrong password.'))
                 return
         self.sudo_pw = pw
         self.pages.set_visible_child_name('install')
@@ -253,7 +259,7 @@ class Setup(Gtk.ApplicationWindow):
                 self.got_done = True
         p.wait()
         if not getattr(self, 'got_done', False):
-            GLib.idle_add(self.on_event, {'ev': 'done', 'ok': False, 'failed': [f'Abbruch (Exit {p.returncode}) – Protokoll ansehen']})
+            GLib.idle_add(self.on_event, {'ev': 'done', 'ok': False, 'failed': [tr(f'Abbruch (Exit {p.returncode}) – Protokoll ansehen', f'Aborted (exit {p.returncode}) – see the log')]})
 
     def on_event(self, ev):
         k = ev.get('ev')
@@ -265,7 +271,7 @@ class Setup(Gtk.ApplicationWindow):
             state = ev.get('state')
             p = ev.get('p')
             if state == 'run':
-                st.set_text('LÄDT' if iid.startswith('model:') else 'LÄUFT')
+                st.set_text(tr('LÄDT', 'DOWNLOADING') if iid.startswith('model:') else tr('LÄUFT', 'RUNNING'))
                 st.set_css_classes(['tos-label-cyan'])
                 if isinstance(p, (int, float)):
                     wv.phase = 0
@@ -276,28 +282,30 @@ class Setup(Gtk.ApplicationWindow):
             elif state in ('done', 'skip'):
                 wv.phase = 0
                 wv.set_progress(1.0)
-                st.set_text('FERTIG' if state == 'done' else 'SCHON DA')
+                st.set_text(DONE if state == 'done' else SKIP)
                 st.set_css_classes(['tos-label'])
             elif state == 'fail':
                 wv.phase = 0
-                st.set_text('FEHLER')
+                st.set_text(FAIL)
                 st.set_css_classes(['tos-label-coral'])
             if ev.get('msg'):
                 msg.set_text(ev['msg'])
-            done = sum(1 for i in self.order if self.rows[i][1].get_text() in ('FERTIG', 'SCHON DA', 'FEHLER'))
+            done = sum(1 for i in self.order if self.rows[i][1].get_text() in (DONE, SKIP, FAIL))
             self.overall.set_progress(done / max(1, len(self.order)))
-            self.overall_lbl.set_text(f'{done} von {len(self.order)} Schritten · {self.titles.get(iid, iid)}')
+            self.overall_lbl.set_text(tr(f'{done} von {len(self.order)} Schritten', f'{done} of {len(self.order)} steps') + f' · {self.titles.get(iid, iid)}')
         elif k == 'done':
             self.reboot = ev.get('reboot')
             ok = ev.get('ok')
             self.overall.set_progress(1.0)
             if ok:
-                self.overall_lbl.set_text('Fertig. Dein Studio ist eingerichtet.' + (' Bitte einmal neu starten (Grafiktreiber).' if self.reboot else ''))
+                self.overall_lbl.set_text(tr('Fertig. Dein Studio ist eingerichtet.', 'Done. Your studio is set up.') +
+                                          (tr(' Bitte einmal neu starten (Grafiktreiber).', ' Please restart once (graphics driver).') if self.reboot else ''))
                 os.makedirs(os.path.expanduser('~/.config/toravo'), exist_ok=True)
                 open(os.path.expanduser('~/.config/toravo/setup-done'), 'w').close()
             else:
-                self.overall_lbl.set_text('Teilweise fertig – fehlgeschlagen: ' + ', '.join(ev.get('failed', [])) + '. Erneut starten setzt fort.')
-            self.done_btn.set_label('Neu starten' if (ok and self.reboot) else 'Fertig')
+                self.overall_lbl.set_text(tr('Teilweise fertig – fehlgeschlagen: ', 'Partly done – failed: ') + ', '.join(ev.get('failed', [])) +
+                                          tr('. Erneut starten setzt fort.', '. Run again to resume.'))
+            self.done_btn.set_label(RESTART if (ok and self.reboot) else tr('Fertig', 'Done'))
             self.done_btn.set_sensitive(True)
         return False
 
@@ -309,7 +317,7 @@ class Setup(Gtk.ApplicationWindow):
         return True
 
     def on_done(self, *_):
-        if getattr(self, 'reboot', False) and self.done_btn.get_label() == 'Neu starten':
+        if getattr(self, 'reboot', False) and self.done_btn.get_label() == RESTART:
             subprocess.Popen(['systemctl', 'reboot'])
         self.close()
 

@@ -3,8 +3,10 @@
 <policyconfig>
   <vendor>Toravo OS</vendor>
   <action id="de.toravo.setup.root-helper">
-    <description>Toravo Setup: Treiber und KI-Werkzeuge installieren</description>
-    <message>Toravo Setup möchte Treiber und Programme installieren.</message>
+    <description>Toravo Setup: install drivers and AI tools</description>
+    <description xml:lang="de">Toravo Setup: Treiber und KI-Werkzeuge installieren</description>
+    <message>Toravo Setup wants to install drivers and programs.</message>
+    <message xml:lang="de">Toravo Setup möchte Treiber und Programme installieren.</message>
     <icon_name>system-software-install</icon_name>
     <defaults><allow_any>auth_admin</allow_any><allow_inactive>auth_admin</allow_inactive><allow_active>auth_admin_keep</allow_active></defaults>
     <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/toravo/toravo-root-helper</annotate>

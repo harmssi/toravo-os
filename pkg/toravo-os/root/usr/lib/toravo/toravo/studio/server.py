@@ -2,15 +2,16 @@
 
 Song · Voice · Video · Shorts · Thumbnail · Kalender mit Freigabe · Render-Queue · GPU – all on top of the local
 render queue (toravo.queue) and the AI stack installed by Toravo Setup. Publishing stays manual: approved posts are
-prepared in ~/Toravo/Veröffentlichen/<datum>/ (no platform logins in Phase 1).
+prepared in ~/Toravo/Veröffentlichen (German) or ~/Toravo/Publish (English) /<date>-<title>/ (no platform logins in Phase 1).
 """
 import json, mimetypes, os, re, shutil, subprocess, sys, threading, time, urllib.parse, uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from .. import queue, stack, agent, executors
+from .. import queue, stack, agent, executors, theme
+from ..theme import tr
 
 STATIC = os.path.join(os.path.dirname(__file__), 'static')
 HOME = os.path.expanduser('~/Toravo')
-KINDS = {'song': 'Songs', 'voice': 'Voice', 'video': 'Videos', 'shorts': 'Shorts', 'thumbnail': 'Thumbnails', 'publish': 'Veröffentlichen'}
+KINDS = {'song': 'Songs', 'voice': 'Voice', 'video': 'Videos', 'shorts': 'Shorts', 'thumbnail': 'Thumbnails', 'publish': theme.folder('Veröffentlichen', 'Publish')}
 CAL = os.path.expanduser('~/.local/share/toravo/calendar.json')
 EXT = {'song': ('.flac', '.wav', '.mp3', '.ogg', '.m4a'), 'voice': ('.wav', '.mp3', '.flac', '.ogg'), 'video': ('.mp4', '.mkv', '.webm', '.mov'),
        'shorts': ('.mp4',), 'thumbnail': ('.png', '.jpg', '.jpeg', '.webp'), 'publish': ('.mp4', '.png', '.jpg', '.txt')}
@@ -82,7 +83,9 @@ def tools_state():
     res = []
     for t in s['tools']:
         cur = st.get('tools', {}).get(t['id'], {})
-        res.append({'id': t['id'], 'title': t['title'], 'area': t['area'], 'engine': t['engine'], 'variant': cur.get('label') or '',
+        var = next((v for v in t['variants'] + t.get('optional', []) if v['id'] == cur.get('variant')), None)
+        res.append({'id': t['id'], 'title': theme.loc(t, 'title'), 'area': theme.loc(t, 'area'), 'engine': t['engine'],
+                    'variant': (theme.loc(var, 'label') if var else cur.get('label')) or '',
                     'ready': stack.tool_ready(t['id'], st) if cur else False, 'off': cur.get('off', False)})
     return {'tools': res, 'hardware': st.get('hardware') or {}, 'setup_done': os.path.exists(os.path.expanduser('~/.config/toravo/setup-done'))}
 
@@ -125,6 +128,7 @@ class H(BaseHTTPRequestHandler):
             self.send_response(200)
         self.send_header('Content-Type', ctype)
         self.send_header('Accept-Ranges', 'bytes')
+        self.send_header('Cache-Control', 'no-cache')  # 14.10.2026: no stale app.js/texts after updates or a language switch
         self.send_header('Content-Length', str(end - start + 1))
         self.end_headers()
         with open(path, 'rb') as f:
@@ -182,8 +186,17 @@ class H(BaseHTTPRequestHandler):
                 if full.startswith(base + os.sep):
                     return self.serve_file(full)
             return self.send_error(404)
-        if p in ('/', '/index.html'):
-            return self.serve_file(os.path.join(STATIC, 'index.html'))
+        if p == '/api/lang':
+            return self.send_json({'lang': theme.lang()})
+        if p in ('/', '/index.html'):  # 14.10.2026: UI language follows the session locale (German for de_*, else English)
+            with open(os.path.join(STATIC, 'index.html'), encoding='utf-8') as f:
+                b = f.read().replace('<html lang="de">', f'<html lang="{theme.lang()}">').encode()
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.send_header('Content-Length', str(len(b)))
+            self.send_header('Cache-Control', 'no-store')
+            self.end_headers()
+            return self.wfile.write(b)
         if p.startswith('/static/'):
             full = os.path.realpath(os.path.join(STATIC, p[len('/static/'):]))
             if full.startswith(os.path.realpath(STATIC) + os.sep):
@@ -212,9 +225,9 @@ class H(BaseHTTPRequestHandler):
             except OSError:
                 return self.send_json({'error': 'unknown'}, 404)
             if act == 'cancel':
-                queue.update(j, state='cancelled', step='abgebrochen')
+                queue.update(j, state='cancelled', step=tr('abgebrochen', 'cancelled'))
             elif act == 'retry':
-                queue.update(j, state='queued', step='erneut eingereiht', error='', progress=0.0)
+                queue.update(j, state='queued', step=tr('erneut eingereiht', 're-queued'), error='', progress=0.0)
             else:
                 os.remove(queue._path(jid))
             return self.send_json({'ok': True})
@@ -232,7 +245,8 @@ class H(BaseHTTPRequestHandler):
             kind = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query).get('kind', ['song'])[0]
             if kind not in KINDS:
                 return self.send_json({'error': 'kind'}, 400)
-            d = os.path.join(HOME, KINDS[kind], 'Importiert')
+            sub = 'Importiert' if os.path.isdir(os.path.join(HOME, KINDS[kind], 'Importiert')) else tr('Importiert', 'Imported')
+            d = os.path.join(HOME, KINDS[kind], sub)
             os.makedirs(d, exist_ok=True)
             dst = os.path.join(d, re.sub(r'[^\w.\- ]', '_', name))
             with open(dst, 'wb') as f:
@@ -242,7 +256,7 @@ class H(BaseHTTPRequestHandler):
             with LOCK:
                 items = cal_load()
                 it = {'id': uuid.uuid4().hex[:10], 'date': data.get('date') or time.strftime('%Y-%m-%d'), 'time': data.get('time') or '17:00',
-                      'title': data.get('title') or 'Neuer Post', 'platform': data.get('platform') or 'YouTube',
+                      'title': data.get('title') or tr('Neuer Post', 'New post'), 'platform': data.get('platform') or 'YouTube',
                       'file': data.get('file') or '', 'thumb': data.get('thumb') or '', 'state': 'needs_approval', 'created': time.time()}
                 items.append(it)
                 cal_save(items)
@@ -264,7 +278,7 @@ class H(BaseHTTPRequestHandler):
                     items.remove(it)
                 elif act == 'prepare':
                     if it['state'] != 'approved':
-                        return self.send_json({'error': 'erst freigeben'}, 409)
+                        return self.send_json({'error': tr('erst freigeben', 'approve first')}, 409)
                     tslug = re.sub(r'[^\w-]+', '-', it['title'].lower())[:40]
                     d = os.path.join(HOME, KINDS['publish'], f"{it['date']}-{tslug}")
                     os.makedirs(d, exist_ok=True)
@@ -295,7 +309,7 @@ def main():
         os.makedirs(os.path.join(HOME, k), exist_ok=True)
     port = int(os.environ.get('TORAVO_STUDIO_PORT', '8890'))
     srv = ThreadingHTTPServer(('127.0.0.1', port), H)
-    print(f'Toravo Studio Local auf http://127.0.0.1:{port}', flush=True)
+    print(f'Toravo Studio Local: http://127.0.0.1:{port}', flush=True)
     srv.serve_forever()
 
 

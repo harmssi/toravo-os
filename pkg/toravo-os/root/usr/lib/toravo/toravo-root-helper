@@ -18,7 +18,7 @@ PY
 }
 case "$action" in
   install-packages)
-    for p in "$@"; do allowed "$p" || { echo "nicht erlaubt: $p" >&2; exit 2; }; done
+    for p in "$@"; do allowed "$p" || { echo "not allowed / nicht erlaubt: $p" >&2; exit 2; }; done
     pacman -Sy --noconfirm --needed "$@"
     ;;
   nvidia-post)
@@ -32,7 +32,7 @@ case "$action" in
     mkinitcpio -P
     ;;
   enable-service)
-    case "$1" in ollama.service) systemctl enable --now ollama.service ;; *) echo "nicht erlaubt: $1" >&2; exit 2 ;; esac
+    case "$1" in ollama.service) systemctl enable --now ollama.service ;; *) echo "not allowed / nicht erlaubt: $1" >&2; exit 2 ;; esac
     ;;
   *) echo "usage: toravo-root-helper install-packages|nvidia-post|enable-service" >&2; exit 2 ;;
 esac

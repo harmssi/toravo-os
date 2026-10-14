@@ -1,6 +1,7 @@
 [Desktop Entry]
 Name=Toravo Setup
-Comment=Treiber und KI-Werkzeuge einrichten
+Comment=Set up drivers and AI tools
+Comment[de]=Treiber und KI-Werkzeuge einrichten
 Exec=toravo-setup
 Icon=/usr/share/toravo/logo/toravo-t-128.png
 Terminal=false

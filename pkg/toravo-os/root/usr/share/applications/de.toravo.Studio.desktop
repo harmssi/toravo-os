@@ -1,6 +1,7 @@
 [Desktop Entry]
 Name=Toravo Studio
-Comment=Song, Voice, Video, Shorts, Thumbnails, Kalender – lokal
+Comment=Song, voice, video, Shorts, thumbnails, calendar – local
+Comment[de]=Song, Voice, Video, Shorts, Thumbnails, Kalender – lokal
 Exec=toravo-studio
 Icon=/usr/share/toravo/logo/toravo-t-128.png
 Terminal=false

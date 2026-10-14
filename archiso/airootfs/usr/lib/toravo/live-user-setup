@@ -1,5 +1,14 @@
 #!/bin/bash
 # Live system only: user "toravo" (password "toravo"), autologin via greetd initial_session.
+# 14.10.2026: boot entry "Toravo OS (English)" passes locale.LANG=en_US.UTF-8 toravo.xkb=us – write it into the live config
+# (session, greeter and installer read /etc/locale.conf and /etc/toravo/xkb_layout). Default stays German.
+for a in $(cat /proc/cmdline); do
+    case "$a" in
+      locale.LANG=*) v=${a#locale.LANG=}; [[ "$v" =~ ^[A-Za-z_]+\.UTF-8$ ]] && echo "LANG=$v" > /etc/locale.conf ;;
+      vconsole.keymap=*) v=${a#vconsole.keymap=}; [[ "$v" =~ ^[A-Za-z0-9_-]+$ ]] && echo "KEYMAP=$v" > /etc/vconsole.conf ;;
+      toravo.xkb=*) v=${a#toravo.xkb=}; [[ "$v" =~ ^[a-z]+$ ]] && { echo "$v" > /etc/toravo/xkb_layout; : > /etc/toravo/xkb_variant; } ;;
+    esac
+done
 id toravo >/dev/null 2>&1 && exit 0
 useradd -m -G wheel,video,audio,input,render,storage -s /bin/bash -c "Toravo Live" toravo
 echo 'toravo:toravo' | chpasswd

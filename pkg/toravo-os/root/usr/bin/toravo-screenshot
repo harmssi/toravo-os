@@ -1,6 +1,8 @@
 #!/bin/bash
-dir="$(xdg-user-dir PICTURES 2>/dev/null || echo "$HOME/Bilder")/Screenshots"; mkdir -p "$dir"
+dir="$(xdg-user-dir PICTURES 2>/dev/null || echo "$HOME/Pictures")/Screenshots"; mkdir -p "$dir"
 f="$dir/toravo-$(date +%Y%m%d-%H%M%S).png"
 if [ "$1" = full ]; then grim "$f"; else g=$(slurp) || exit 0; grim -g "$g" "$f"; fi
 wl-copy < "$f" 2>/dev/null
-notify-send -a Toravo -i "$f" "Screenshot gespeichert" "$(basename "$f") · auch in der Zwischenablage"
+. /usr/lib/toravo/locale.sh
+if [ "$(toravo_ui)" = en ]; then t="Screenshot saved"; b="also in the clipboard"; else t="Screenshot gespeichert"; b="auch in der Zwischenablage"; fi
+notify-send -a Toravo -i "$f" "$t" "$(basename "$f") · $b"

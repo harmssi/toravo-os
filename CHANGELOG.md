@@ -2,6 +2,12 @@
 
 ## Unveröffentlicht (14.10.2026)
 
+- Sprache: alle eigenen Oberflächen zweisprachig (Deutsch für `de_*`, sonst Englisch) – Command Bar, Desktop-Uhr, Toravo Setup,
+  Installer (folgt der gewählten Sprache sofort), Studio Local (`<html lang>` vom Server, Texttabelle in `app.js`), Render-Queue,
+  Waybar-Tooltips, Power-Menü, labwc-Menü, Greeter-Begrüßung, Benachrichtigungen, `.desktop`-Dateien (`Name[de]`), polkit,
+  `ai-stack.json` (`title_en`/`label_en`/`note_en`/`license_en`). Die Sitzung lädt `~/.config/locale.conf` bzw. `/etc/locale.conf`
+  (`/usr/lib/toravo/locale.sh`), `TORAVO_LANG` überschreibt. Live-ISO: neuer Starteintrag „Toravo OS (English)“
+  (`locale.LANG=en_US.UTF-8`, US-Tastatur); Standard bleibt Deutsch.
 - Build: `BUILD_MODE=native` in `build.sh` – mkarchiso direkt auf einer Arch-basierten Build-Maschine (ohne Docker);
   `scripts/container-build.sh` nimmt den Arbeitsordner aus `BUILD_ROOT` (Standard `/build`). Getestet: ISO nativ in einer
   Toravo-OS-VM gebaut, bootet live bis zum Installer.

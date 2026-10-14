@@ -28,7 +28,9 @@ def ensure_server():
 def main():
     page = sys.argv[1] if len(sys.argv) > 1 else ''
     if not ensure_server():
-        subprocess.Popen(['notify-send', '-a', 'Toravo', 'Studio startet nicht', 'Siehe journalctl --user -u toravo-studio'])
+        from ..theme import tr
+        subprocess.Popen(['notify-send', '-a', 'Toravo', tr('Studio startet nicht', 'Studio does not start'),
+                          tr('Siehe journalctl --user -u toravo-studio', 'See journalctl --user -u toravo-studio')])
         return
     url = URL + ('#' + page if page else '')
     try:

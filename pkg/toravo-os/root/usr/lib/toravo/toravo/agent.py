@@ -13,6 +13,7 @@ Step kinds: song, voice, video, shorts, thumbnail, stems, master, transcribe, st
 """
 import json, os, re, subprocess, sys, urllib.request
 from . import stack
+from .theme import tr
 
 KINDS = ['song', 'voice', 'video', 'shorts', 'thumbnail', 'stems', 'master', 'transcribe', 'stream', 'studio']
 CONF = os.path.expanduser('~/.config/toravo/agent.json')
@@ -34,7 +35,7 @@ SYSTEM = (
     'video (music video from a song), shorts (vertical 9:16 cuts with captions, params.count = number), thumbnail (A/B '
     'thumbnails), stems (split stems), master (mastering), transcribe (subtitles), stream (start OBS stream), studio (open the app). '
     '"after" lists indices of earlier steps this step needs. subject = the song/project name in lowercase. Reuse an existing '
-    'song if the user refers to one by name (then no song step). Keep titles short, in the language of the user. Only JSON.')
+    'song if the user refers to one by name (then no song step). Keep titles short, in ' + ('German' if tr('de', 'en') == 'de' else 'English') + '. Only JSON.')
 
 
 def load_conf():
@@ -54,6 +55,10 @@ def existing_songs():
 
 
 # ------------------------------------------------------------------------------------------------ rules
+def shorts_title(n):
+    return tr(f'{n} Shorts schneiden (9:16 + Untertitel)', f'Cut {n} Shorts (9:16 + captions)')
+
+
 NUM = {'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5, 'ein': 1, 'eins': 1, 'zwei': 2, 'drei': 3, 'vier': 4, 'fünf': 5}
 
 
@@ -74,28 +79,28 @@ def rules(text):
     song_i = None
     if re.search(r'\bsong\b|\blied\b|track', t) or (wants_video and not have_song):
         if not have_song:
-            song_i = add('song', f'Song „{subject}“ erzeugen', style=subject)
+            song_i = add('song', tr(f'Song „{subject}“ erzeugen', f'Make song “{subject}”'), style=subject)
     if re.search(r'voice|stimme|clone|klon|sprech', t):
-        add('voice', 'Stimme klonen / sprechen')
+        add('voice', tr('Stimme klonen / sprechen', 'Clone voice / speak'))
     vid_i = None
     if wants_video:
-        vid_i = add('video', 'Musikvideo rendern', [song_i] if song_i is not None else [])
+        vid_i = add('video', tr('Musikvideo rendern', 'Render music video'), [song_i] if song_i is not None else [])
     m = re.search(r'(\d+|' + '|'.join(NUM) + r')\s*(?:x\s*)?(?:vertical\s+)?shorts?', t)
     if m or 'short' in t:
         n = int(m.group(1)) if m and m.group(1).isdigit() else NUM.get(m.group(1), 3) if m else 3
-        add('shorts', f'{n} Shorts schneiden (9:16 + Untertitel)', [vid_i] if vid_i is not None else [], count=n)
+        add('shorts', shorts_title(n), [vid_i] if vid_i is not None else [], count=n)
     if 'thumb' in t or 'vorschaubild' in t:
         add('thumbnail', 'Thumbnail A/B', [vid_i] if vid_i is not None else [], count=2)
     if 'stem' in t or 'spur' in t:
-        add('stems', 'Stems trennen', [song_i] if song_i is not None else [])
+        add('stems', tr('Stems trennen', 'Split stems'), [song_i] if song_i is not None else [])
     if 'master' in t:
-        add('master', 'Mastern', [song_i] if song_i is not None else [])
+        add('master', tr('Mastern', 'Master'), [song_i] if song_i is not None else [])
     if re.search(r'untertitel|subtitle|transkri|transcri', t):
-        add('transcribe', 'Untertitel erzeugen')
+        add('transcribe', tr('Untertitel erzeugen', 'Make subtitles'))
     if re.search(r'stream|live', t):
-        add('stream', 'Stream starten (OBS)')
+        add('stream', tr('Stream starten (OBS)', 'Start stream (OBS)'))
     if not steps:
-        add('studio', 'Im Studio öffnen')
+        add('studio', tr('Im Studio öffnen', 'Open in Studio'))
     return {'title': text.strip()[:80], 'subject': subject, 'steps': steps}
 
 
@@ -162,7 +167,7 @@ def merge_shorts(p, r):
     want = next((s['params']['count'] for s in r.get('steps', []) if s['kind'] == 'shorts'), None)
     keep = idx[0]
     p['steps'][keep]['params']['count'] = max(1, min(10, int(want or sum(p['steps'][i]['params']['count'] for i in idx))))
-    p['steps'][keep]['title'] = f'{p["steps"][keep]["params"]["count"]} Shorts schneiden (9:16 + Untertitel)'
+    p['steps'][keep]['title'] = shorts_title(p['steps'][keep]['params']['count'])
     drop = set(idx[1:])
     new_index, n = {}, 0
     for i in range(len(p['steps'])):
@@ -192,7 +197,7 @@ def harmonize(p, text):
     merge_shorts(p, r)
     kinds = [s['kind'] for s in p['steps']]
     if 'video' in kinds and 'song' not in kinds and p['subject'] not in existing_songs():
-        p['steps'].insert(0, {'kind': 'song', 'title': f'Song „{p["subject"]}“ erzeugen',
+        p['steps'].insert(0, {'kind': 'song', 'title': tr(f'Song „{p["subject"]}“ erzeugen', f'Make song “{p["subject"]}”'),
                               'params': {'prompt': text, 'count': 1, 'style': p['subject'], 'lyrics': ''}, 'after': []})
         for s in p['steps'][1:]:
             s['after'] = [a + 1 for a in s['after']]

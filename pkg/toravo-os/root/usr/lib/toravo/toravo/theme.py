@@ -28,13 +28,32 @@ def grad_at(t):
 
 
 def lang():
-    l = (os.environ.get('LANG') or os.environ.get('LC_ALL') or 'de').lower()
-    return 'de' if l.startswith('de') or l in ('c', 'c.utf-8', 'posix') else 'en'
+    """'de' or 'en'. TORAVO_LANG (installer live switch, recordings) > LC_ALL > LC_MESSAGES > LANG; German only for de_*."""
+    for var in ('TORAVO_LANG', 'LC_ALL', 'LC_MESSAGES', 'LANG'):
+        v = (os.environ.get(var) or '').strip().lower()
+        if v:
+            return 'de' if v.startswith('de') else 'en' if v not in ('c', 'c.utf-8', 'posix') else 'de'
+    return 'de'
 
 
 def tr(de, en):
-    """Tiny i18n: German default, English for non-German locales."""
+    """Tiny i18n: German for German locales, English for all others."""
     return de if lang() == 'de' else en
+
+
+def loc(d, key, default=''):
+    """Localized field of a data dict (e.g. ai-stack.json): d[key + '_en'] for English, d[key] (German) otherwise."""
+    if lang() != 'de' and d.get(key + '_en'):
+        return d[key + '_en']
+    return d.get(key, default)
+
+
+def folder(de, en):
+    """Name of a work folder under ~/Toravo: an existing German folder is kept (older installs), new English systems get
+    the English name. Only for the few folders with German names (Projekte, Referenzen, Veröffentlichen, Importiert)."""
+    if os.path.isdir(os.path.join(os.path.expanduser('~/Toravo'), de)):
+        return de
+    return tr(de, en)
 
 
 T = TOKENS

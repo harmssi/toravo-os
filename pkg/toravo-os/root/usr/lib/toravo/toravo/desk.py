@@ -35,7 +35,7 @@ class Desk(Gtk.Application):
                          'THE AI CONTENT CREATOR OS</span>')
         hint = Gtk.Label()
         hint.set_markup(f'<span size="10240" foreground="{theme.T["text3"]}"><span font_family="JetBrains Mono" foreground="{theme.T["violet"]}">'
-                        f'Super + Leertaste</span>   Sag einfach, was du willst.</span>')
+                        f'{theme.tr("Super + Leertaste", "Super + Space")}</span>   {theme.tr("Sag einfach, was du willst.", "Just say what you want.")}</span>')
         hint.set_margin_top(18)
         box.append(self.clock)
         box.append(claim)

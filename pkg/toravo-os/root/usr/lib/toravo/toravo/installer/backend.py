@@ -8,6 +8,7 @@ Layout: GPT · EFI 1 GiB (or existing ESP + 1 GiB XBOOTLDR when installing along
 """
 import json, os, re, shutil, subprocess, sys, time
 from . import disks as D
+from ..theme import tr
 
 T = '/mnt/toravo-target'
 JSON = '--json' in sys.argv
@@ -53,7 +54,7 @@ def sh(cmd, check=True, input=None, chroot=False):
     with open(LOG, 'a') as f:
         f.write((r.stdout or '')[-4000:] + (r.stderr or '')[-4000:])
     if check and r.returncode != 0:
-        raise Fail(f'{" ".join(cmd[:4])} fehlgeschlagen: {(r.stderr or r.stdout).strip()[-300:]}')
+        raise Fail(f'{" ".join(cmd[:4])} ' + tr('fehlgeschlagen', 'failed') + f': {(r.stderr or r.stdout).strip()[-300:]}')
     return r.stdout
 
 
@@ -73,31 +74,31 @@ def uuid_of(dev):
 
 # ------------------------------------------------------------------------------------------------ steps
 def check(c):
-    progress('check', 0, 'Prüfe Einstellungen …')
+    progress('check', 0, tr('Prüfe Einstellungen …', 'Checking settings …'))
     for k in ('disk', 'mode', 'user', 'password'):
         if not c.get(k):
-            raise Fail(f'Angabe fehlt: {k}')
+            raise Fail(tr('Angabe fehlt: ', 'Missing value: ') + k)
     if not re.match(r'^[a-z_][a-z0-9_-]{0,31}$', c['user']):
-        raise Fail('Ungültiger Benutzername')
+        raise Fail(tr('Ungültiger Benutzername', 'Invalid username'))
     ds = {d['path']: d for d in D.scan()}
     d = ds.get(c['disk'])
     if not d:
-        raise Fail('Platte nicht gefunden: ' + c['disk'])
+        raise Fail(tr('Platte nicht gefunden: ', 'Disk not found: ') + c['disk'])
     if d['boot_medium']:
-        raise Fail('Das ist der Toravo-Stick selbst.')
+        raise Fail(tr('Das ist der Toravo-Stick selbst.', 'That is the Toravo USB stick itself.'))
     if d['too_small']:
-        raise Fail(f'Platte zu klein (mindestens {D.MIN_GB} GB).')
+        raise Fail(tr(f'Platte zu klein (mindestens {D.MIN_GB} GB).', f'Disk too small (at least {D.MIN_GB} GB).'))
     mode = c['mode']
     if mode == 'empty' and not d['empty']:
-        raise Fail('Platte ist nicht leer – nichts wird gelöscht. Bitte neu wählen.')
+        raise Fail(tr('Platte ist nicht leer – nichts wird gelöscht. Bitte neu wählen.', 'Disk is not empty – nothing is erased. Please choose again.'))
     if mode == 'erase' and c.get('confirm') != d['name']:
-        raise Fail('Löschen nicht bestätigt (Plattenname muss eingegeben werden).')
+        raise Fail(tr('Löschen nicht bestätigt (Plattenname muss eingegeben werden).', 'Erase not confirmed (the disk name must be typed).'))
     if mode == 'alongside' and not d['can_alongside']:
-        raise Fail('Nicht genug freier Platz neben dem vorhandenen System.')
+        raise Fail(tr('Nicht genug freier Platz neben dem vorhandenen System.', 'Not enough free space next to the existing system.'))
     if mode in ('erase', 'empty') and d['mounted']:
-        raise Fail('Auf der Platte ist etwas eingehängt – bitte erst aushängen.')
+        raise Fail(tr('Auf der Platte ist etwas eingehängt – bitte erst aushängen.', 'Something on the disk is mounted – please unmount it first.'))
     if not os.path.isdir(SRC_SQUASH) and not os.path.exists('/run/archiso/bootmnt'):
-        raise Fail('Live-System nicht gefunden (nur vom Toravo-Stick aus installierbar).')
+        raise Fail(tr('Live-System nicht gefunden (nur vom Toravo-Stick aus installierbar).', 'Live system not found (can only be installed from the Toravo stick).'))
     c['_disk'] = d
     c['_uefi'] = os.path.isdir('/sys/firmware/efi')
     progress('check', 1)
@@ -105,7 +106,7 @@ def check(c):
 
 def partition(c):
     disk, mode, uefi = c['disk'], c['mode'], c['_uefi']
-    progress('partition', 0, 'Partitioniere …')
+    progress('partition', 0, tr('Partitioniere …', 'Partitioning …'))
     if mode in ('empty', 'erase'):
         sh(['swapoff', '-a'], check=False)
         sh(['wipefs', '-af', disk])
@@ -143,7 +144,7 @@ def partition(c):
 
 
 def fmt(c):
-    progress('format', 0, 'Formatiere …')
+    progress('format', 0, tr('Formatiere …', 'Formatting …'))
     if c['_esp'] and c['_esp_new']:
         sh(['mkfs.fat', '-F32', '-n', 'TORAVO', c['_esp']])
     if c.get('_xboot'):
@@ -172,7 +173,7 @@ def fmt(c):
 
 
 def copy(c):
-    progress('copy', 0, 'Kopiere Toravo OS …')
+    progress('copy', 0, tr('Kopiere Toravo OS …', 'Copying Toravo OS …'))
     src = SRC_SQUASH if os.path.isdir(SRC_SQUASH + '/usr') else None
     if src:
         cmd = ['rsync', '-aHAX', '--numeric-ids', '--info=progress2', '--no-inc-recursive',
@@ -182,7 +183,7 @@ def copy(c):
     else:
         sfs = next((p for p in ('/run/archiso/bootmnt/arch/x86_64/airootfs.sfs', '/run/archiso/copytoram/airootfs.sfs') if os.path.exists(p)), None)
         if not sfs:
-            raise Fail('airootfs.sfs nicht gefunden')
+            raise Fail(tr('airootfs.sfs nicht gefunden', 'airootfs.sfs not found'))
         cmd = ['unsquashfs', '-f', '-percentage', '-d', T, sfs]
         rx = re.compile(r'^(\d{1,3})$')
     with open(LOG, 'a') as f:
@@ -197,20 +198,20 @@ def copy(c):
             m = rx.search(buf)
             if m and time.time() - last > .3:
                 last = time.time()
-                progress('copy', int(m.group(1)) / 100, f'Kopiere Toravo OS … {m.group(1)} %')
+                progress('copy', int(m.group(1)) / 100, tr('Kopiere Toravo OS …', 'Copying Toravo OS …') + f' {m.group(1)} %')
             buf = ''
         else:
             buf += ch
     p.wait()
     if p.returncode not in (0, 24):  # 24 = vanished files
-        raise Fail(f'Kopieren fehlgeschlagen (Exit {p.returncode})')
+        raise Fail(tr(f'Kopieren fehlgeschlagen (Exit {p.returncode})', f'Copy failed (exit {p.returncode})'))
     for d in ('dev', 'proc', 'sys', 'run', 'tmp', 'mnt'):
         os.makedirs(f'{T}/{d}', exist_ok=True)
     os.chmod(f'{T}/tmp', 0o1777)
     kv = sorted(os.listdir(f'{T}/usr/lib/modules'))
     kern = next((f'{T}/usr/lib/modules/{k}/vmlinuz' for k in kv if os.path.exists(f'{T}/usr/lib/modules/{k}/vmlinuz')), None)
     if not kern:
-        raise Fail('Kernel nicht gefunden')
+        raise Fail(tr('Kernel nicht gefunden', 'Kernel not found'))
     shutil.copy2(kern, f'{T}/boot/vmlinuz-linux')
     progress('copy', 1)
 
@@ -223,7 +224,7 @@ def write(path, text, mode=0o644):
 
 
 def system(c):
-    progress('system', 0, 'Richte das System ein …')
+    progress('system', 0, tr('Richte das System ein …', 'Setting up the system …'))
     # live-only bits out
     lst = f'{T}/etc/toravo/live-only.txt'
     if os.path.exists(lst):
@@ -255,7 +256,7 @@ def system(c):
             os.remove(f'{T}/etc/localtime')
         os.symlink(f'/usr/share/zoneinfo/{tz}', f'{T}/etc/localtime')
     sh(['hwclock', '--systohc'], check=False, chroot=True)
-    progress('system', .2, 'Lege deinen Benutzer an …')
+    progress('system', .2, tr('Lege deinen Benutzer an …', 'Creating your user …'))
     sh(['useradd', '-m', '-G', 'wheel,video,audio,input,render,storage', '-s', '/bin/bash', '-c', c.get('fullname', c['user']), c['user']], chroot=True)
     sh(['chpasswd'], input=f'{c["user"]}:{c["password"]}\n', chroot=True)
     sh(['passwd', '-l', 'root'], check=False, chroot=True)
@@ -265,10 +266,10 @@ def system(c):
     if c.get('autologin'):
         g += f'\n[initial_session]\ncommand = "/usr/bin/toravo-session"\nuser = "{c["user"]}"\n'
     write('/etc/greetd/config.toml', g)
-    progress('system', .35, 'Schlüssel für Paket-Updates …')
+    progress('system', .35, tr('Schlüssel für Paket-Updates …', 'Keys for package updates …'))
     sh(['pacman-key', '--init'], chroot=True)
     sh(['pacman-key', '--populate', 'archlinux'], chroot=True)
-    progress('system', .6, 'Snapshots, Swap, Dienste …')
+    progress('system', .6, tr('Snapshots, Swap, Dienste …', 'Snapshots, swap, services …'))
     snap_tpl = f'{T}/usr/share/snapper/config-templates/default'
     if os.path.exists(snap_tpl):
         conf = open(snap_tpl).read()
@@ -292,7 +293,7 @@ def system(c):
 
 
 def drivers(c):
-    progress('drivers', 0, 'Grafiktreiber …')
+    progress('drivers', 0, tr('Grafiktreiber …', 'Graphics driver …'))
     hwj = c.get('hardware') or {}
     nv = hwj.get('profile') == 'nvidia'
     if nv and os.path.isdir(OFFLINE_REPO):
@@ -308,7 +309,7 @@ def drivers(c):
             for u in ('nvidia-suspend.service', 'nvidia-hibernate.service', 'nvidia-resume.service'):
                 sh(['systemctl', 'enable', u], check=False, chroot=True)
             c['_nvidia'] = True
-    progress('drivers', .4, 'Startbild (initramfs) …')
+    progress('drivers', .4, tr('Startbild (initramfs) …', 'Boot image (initramfs) …'))
     hooks = 'base udev plymouth autodetect microcode modconf ' + ('' if c.get('_nvidia') else 'kms ') + \
         'keyboard keymap consolefont block filesystems fsck'
     write('/etc/mkinitcpio.conf.d/20-toravo.conf', f'HOOKS=({hooks})\nCOMPRESSION="zstd"\n')
@@ -331,7 +332,7 @@ def boot(c):
         else:
             sh(['bootctl', 'install', '--esp-path=/boot'], chroot=True)
         write('/boot/loader/entries/toravo.conf', f'title   Toravo OS\nlinux   /vmlinuz-linux\ninitrd  /initramfs-linux.img\noptions {opts}\n')
-        write('/boot/loader/entries/toravo-fallback.conf', f'title   Toravo OS (Notfall)\nlinux   /vmlinuz-linux\ninitrd  /initramfs-linux-fallback.img\n'
+        write('/boot/loader/entries/toravo-fallback.conf', f'title   Toravo OS ({tr("Notfall", "fallback")})\nlinux   /vmlinuz-linux\ninitrd  /initramfs-linux-fallback.img\n'
               f'options root=UUID={root_uuid} rootflags=subvol=@ rw\n')
         loader = '/efi/loader/loader.conf' if c.get('_xboot') else '/boot/loader/loader.conf'
         write(loader, 'default toravo.conf\ntimeout 3\nconsole-mode max\neditor no\n')
@@ -348,12 +349,12 @@ def boot(c):
 
 
 def finish(c):
-    progress('finish', 0, 'Erster Snapshot …')
-    sh(['snapper', '--no-dbus', '-c', 'root', 'create', '-d', 'Toravo OS installiert'], check=False, chroot=True)
+    progress('finish', 0, tr('Erster Snapshot …', 'First snapshot …'))
+    sh(['snapper', '--no-dbus', '-c', 'root', 'create', '-d', tr('Toravo OS installiert', 'Toravo OS installed')], check=False, chroot=True)
     sh(['cp', LOG, f'{T}/var/log/toravo-install.log'], check=False)
     sh(['sync'])
     sh(['umount', '-R', T], check=False)
-    progress('finish', 1, 'Fertig.')
+    progress('finish', 1, tr('Fertig.', 'Done.'))
 
 
 def cleanup():
@@ -367,6 +368,7 @@ def main():
         sys.exit(2)
     with open(args[0]) as f:
         c = json.load(f)
+    os.environ['TORAVO_LANG'] = c.get('lang') or 'de_DE.UTF-8'  # messages in the language chosen in the installer
     if '--keep-config' not in sys.argv:
         try:
             os.remove(args[0])  # contains the password

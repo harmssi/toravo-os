@@ -1,13 +1,14 @@
 """Toravo Command Bar (Super + Space): "Just say what you want."
 
 Layer-shell overlay, centered like in the trailer. Empty -> Toravo actions; typing -> filters actions + apps;
-free text -> "Plan erstellen" (local LLM via Ollama, rule fallback) -> step list -> Enter = jobs into the render queue.
+free text -> "Plan erstellen" / "Make a plan" (local LLM via Ollama, rule fallback) -> step list -> Enter = jobs into the render queue.
 """
 import os, subprocess, sys, threading
 import gi
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk, GLib, Gio, Gdk, Pango
 from . import theme
+from .theme import tr
 try:
     gi.require_version('Gtk4LayerShell', '1.0')
     from gi.repository import Gtk4LayerShell as LS
@@ -32,27 +33,27 @@ def comfy():
 
 ACTIONS = [
     # (title, micro tag, keywords, callable)
-    ('Song machen', 'YuE2 · LOCAL', 'song lied musik track yue make', lambda: sh('toravo-studio', 'song')),
-    ('Musikvideo rendern', 'LTX-VIDEO · COMFYUI', 'video musikvideo mv ltx render', lambda: sh('toravo-studio', 'video')),
-    ('Shorts schneiden', '9:16 · UNTERTITEL', 'shorts short reels tiktok vertical cut', lambda: sh('toravo-studio', 'shorts')),
-    ('Thumbnail', 'QWEN-IMAGE · A/B', 'thumbnail bild cover vorschaubild', lambda: sh('toravo-studio', 'thumbnail')),
-    ('Stimme', 'VOXCPM · WHISPER', 'voice stimme sprechen tts clone whisper untertitel', lambda: sh('toravo-studio', 'voice')),
-    ('Kalender & Freigabe', 'CALENDAR', 'kalender plan posting freigabe calendar', lambda: sh('toravo-studio', 'calendar')),
-    ('Stream starten', 'OBS · 24/7', 'stream live obs twitch youtube', stream),
-    ('Render-Queue', 'QUEUE', 'queue jobs render warteschlange', lambda: sh('toravo-studio', 'queue')),
-    ('Toravo Studio öffnen', 'STUDIO', 'studio app', lambda: sh('toravo-studio')),
-    ('ComfyUI öffnen', 'COMFYUI', 'comfy comfyui nodes workflow', comfy),
-    ('Toravo Setup', 'KI-WERKZEUGE EINRICHTEN', 'setup treiber nvidia cuda modelle install ki', lambda: sh('toravo-setup')),
+    (tr('Song machen', 'Make a song'), 'YuE2 · LOCAL', 'song lied musik music track yue make', lambda: sh('toravo-studio', 'song')),
+    (tr('Musikvideo rendern', 'Render music video'), 'LTX-VIDEO · COMFYUI', 'video musikvideo music mv ltx render', lambda: sh('toravo-studio', 'video')),
+    (tr('Shorts schneiden', 'Cut Shorts'), tr('9:16 · UNTERTITEL', '9:16 · CAPTIONS'), 'shorts short reels tiktok vertical cut', lambda: sh('toravo-studio', 'shorts')),
+    ('Thumbnail', 'QWEN-IMAGE · A/B', 'thumbnail bild image cover vorschaubild', lambda: sh('toravo-studio', 'thumbnail')),
+    (tr('Stimme', 'Voice'), 'VOXCPM · WHISPER', 'voice stimme sprechen speak tts clone whisper untertitel subtitles', lambda: sh('toravo-studio', 'voice')),
+    (tr('Kalender & Freigabe', 'Calendar & approval'), 'CALENDAR', 'kalender plan posting freigabe calendar approval schedule', lambda: sh('toravo-studio', 'calendar')),
+    (tr('Stream starten', 'Start stream'), 'OBS · 24/7', 'stream live obs twitch youtube', stream),
+    (tr('Render-Queue', 'Render queue'), 'QUEUE', 'queue jobs render warteschlange', lambda: sh('toravo-studio', 'queue')),
+    (tr('Toravo Studio öffnen', 'Open Toravo Studio'), 'STUDIO', 'studio app', lambda: sh('toravo-studio')),
+    (tr('ComfyUI öffnen', 'Open ComfyUI'), 'COMFYUI', 'comfy comfyui nodes workflow', comfy),
+    ('Toravo Setup', tr('KI-WERKZEUGE EINRICHTEN', 'SET UP AI TOOLS'), 'setup treiber driver nvidia cuda modelle models install ki ai', lambda: sh('toravo-setup')),
     ('Terminal', 'KITTY', 'terminal shell konsole', lambda: sh('foot' if theme.software_rendering() else 'kitty')),
-    ('Dateien', 'THUNAR', 'dateien files ordner explorer', lambda: sh('thunar', os.path.expanduser('~/Toravo'))),
+    (tr('Dateien', 'Files'), 'THUNAR', 'dateien files ordner folder explorer', lambda: sh('thunar', os.path.expanduser('~/Toravo'))),
     ('Browser', 'FIREFOX', 'browser web firefox internet', lambda: sh('firefox')),
-    ('WLAN & Netzwerk', 'NETZWERK', 'wlan wifi netzwerk internet network', lambda: sh('toravo-network')),
-    ('Sperren', 'LOCK', 'sperren lock', lambda: sh('loginctl', 'lock-session')),
-    ('Neu starten', 'POWER', 'neustart reboot restart', lambda: sh('systemctl', 'reboot')),
-    ('Ausschalten', 'POWER', 'ausschalten herunterfahren shutdown poweroff', lambda: sh('systemctl', 'poweroff')),
+    (tr('WLAN & Netzwerk', 'Wi-Fi & network'), tr('NETZWERK', 'NETWORK'), 'wlan wifi netzwerk internet network', lambda: sh('toravo-network')),
+    (tr('Sperren', 'Lock'), 'LOCK', 'sperren lock', lambda: sh('loginctl', 'lock-session')),
+    (tr('Neu starten', 'Restart'), 'POWER', 'neustart reboot restart', lambda: sh('systemctl', 'reboot')),
+    (tr('Ausschalten', 'Shut down'), 'POWER', 'ausschalten herunterfahren shutdown poweroff', lambda: sh('systemctl', 'poweroff')),
 ]
 if LIVE:
-    ACTIONS.insert(0, ('Toravo OS installieren', 'INSTALLER · 3 SCHRITTE', 'install installieren installer', lambda: sh('toravo-installer')))
+    ACTIONS.insert(0, (tr('Toravo OS installieren', 'Install Toravo OS'), tr('INSTALLER · 3 SCHRITTE', 'INSTALLER · 3 STEPS'), 'install installieren installer', lambda: sh('toravo-installer')))
 
 ICONS = {'song': '♫', 'voice': '◉', 'video': '▶', 'shorts': '▮', 'thumbnail': '▣', 'stems': '≋', 'master': '◆', 'transcribe': '¶',
          'stream': '●', 'studio': '◇'}
@@ -114,7 +115,8 @@ class Bar(Gtk.Application):
         prompt.add_css_class('cb-prompt')
         self.entry = Gtk.Entry(hexpand=True)
         self.entry.add_css_class('tos-cmd')
-        self.entry.set_placeholder_text('Sag einfach, was du willst …   z. B. „turn skyborne into a music video + 3 shorts + thumbnail“')
+        self.entry.set_placeholder_text(tr('Sag einfach, was du willst …   z. B. „turn skyborne into a music video + 3 shorts + thumbnail“',
+                                            'Just say what you want …   e.g. “turn skyborne into a music video + 3 shorts + thumbnail”'))
         self.entry.connect('changed', self.on_changed)
         self.entry.connect('activate', self.on_enter)
         row.append(prompt)
@@ -149,8 +151,9 @@ class Bar(Gtk.Application):
             GLib.timeout_add(500, lambda: (self.make_plan(), False)[1])
 
     def hint(self, extra=''):
-        return (f'<span size="9216" foreground="{theme.T["text3"]}">{extra}<span font_family="JetBrains Mono">↵</span> ausführen   '
-                f'<span font_family="JetBrains Mono">Tab</span> Plan   <span font_family="JetBrains Mono">Esc</span> schließen</span>')
+        run, close = tr('ausführen', 'run'), tr('schließen', 'close')
+        return (f'<span size="9216" foreground="{theme.T["text3"]}">{extra}<span font_family="JetBrains Mono">↵</span> {run}   '
+                f'<span font_family="JetBrains Mono">Tab</span> Plan   <span font_family="JetBrains Mono">Esc</span> {close}</span>')
 
     # -------------------------------------------------------------- list
     def clear(self):
@@ -200,7 +203,8 @@ class Bar(Gtk.Application):
                     items.append((s, ('app', app), app.get_display_name(), 'APP', '▫'))
         items.sort(key=lambda x: -x[0])
         if q.strip() and (len(q.split()) >= 3 or not items or items[0][0] < 60):
-            self.add_row(f'Plan erstellen: „{q.strip()}“', 'AGENT · LOCAL', ('plan', q), '✦', 'Toravo zerlegt deinen Wunsch in Schritte für die lokalen Werkzeuge')
+            self.add_row(tr(f'Plan erstellen: „{q.strip()}“', f'Make a plan: “{q.strip()}”'), 'AGENT · LOCAL', ('plan', q), '✦',
+                         tr('Toravo zerlegt deinen Wunsch in Schritte für die lokalen Werkzeuge', 'Toravo breaks your request into steps for the local tools'))
         for it in items[:9]:
             self.add_row(it[2], it[3], it[1], it[4])
         first = self.list.get_row_at_index(0)
@@ -258,8 +262,8 @@ class Bar(Gtk.Application):
         if not text:
             return
         self.clear()
-        self.add_row('Plane …', 'AGENT', ('noop', None), '✦', 'lokales Modell denkt nach')
-        self.status.set_markup(self.hint('Plan wird erstellt …   '))
+        self.add_row(tr('Plane …', 'Planning …'), 'AGENT', ('noop', None), '✦', tr('lokales Modell denkt nach', 'local model is thinking'))
+        self.status.set_markup(self.hint(tr('Plan wird erstellt …   ', 'Making the plan …   ')))
 
         def work():
             from . import agent
@@ -274,28 +278,28 @@ class Bar(Gtk.Application):
         self.clear()
         self.plan = p
         if not p.get('steps'):
-            self.add_row('Kein Plan möglich', '', ('noop', None), '!', p.get('error', ''))
+            self.add_row(tr('Kein Plan möglich', 'No plan possible'), '', ('noop', None), '!', p.get('error', ''))
             return False
         for i, s in enumerate(p['steps']):
             ready = s.get('ready', True)
-            tag = TAGS.get(s['kind'], s['kind']) + ('' if ready else ' · FEHLT')
+            tag = TAGS.get(s['kind'], s['kind']) + ('' if ready else tr(' · FEHLT', ' · MISSING'))
             if s.get('engine') == 'lite':
                 tag += ' · LITE'
-            sub = '' if ready else 'Werkzeug nicht eingerichtet – Toravo Setup öffnen'
+            sub = '' if ready else tr('Werkzeug nicht eingerichtet – Toravo Setup öffnen', 'Tool not set up – open Toravo Setup')
             r = self.add_row(s['title'], tag, ('noop', None), ICONS.get(s['kind'], '·'), sub)
             if not ready:
                 r.get_child().add_css_class('cb-missing')
-        prov = {'ollama': 'lokales LLM', 'anthropic': 'Claude (eigener Schlüssel)', 'rules': 'Regel-Planer'}.get(p.get('provider'), p.get('provider'))
-        run = self.add_row(f'Ausführen · {len(p["steps"])} Schritte in die Render-Queue', prov.upper(), ('run', None), '↵')
+        prov = {'ollama': tr('lokales LLM', 'local LLM'), 'anthropic': tr('Claude (eigener Schlüssel)', 'Claude (own key)'), 'rules': tr('Regel-Planer', 'rule planner')}.get(p.get('provider'), p.get('provider'))
+        run = self.add_row(tr(f'Ausführen · {len(p["steps"])} Schritte in die Render-Queue', f'Run · {len(p["steps"])} steps into the render queue'), prov.upper(), ('run', None), '↵')
         run.get_child().add_css_class('cb-run')
         self.list.select_row(run)
-        self.status.set_markup(self.hint('Plan bereit   '))
+        self.status.set_markup(self.hint(tr('Plan bereit   ', 'Plan ready   ')))
         return False
 
     def run_plan(self):
         from . import queue
         ids = queue.enqueue_plan(self.plan)
-        sh('notify-send', '-a', 'Toravo', 'In der Render-Queue', f'{len(ids)} Jobs · {self.plan.get("title", "")}')
+        sh('notify-send', '-a', 'Toravo', tr('In der Render-Queue', 'In the render queue'), f'{len(ids)} jobs · {self.plan.get("title", "")}')
         self.win.close()
         return True
 

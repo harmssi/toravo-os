@@ -10,6 +10,7 @@ Models are never part of the ISO – they are downloaded here, resumable (.part 
 """
 import json, os, shutil, subprocess, sys, time, urllib.error, urllib.request
 from . import hw
+from .theme import tr, loc
 
 STACK_FILE = '/usr/share/toravo/ai-stack.json'
 HELPER = '/usr/lib/toravo/toravo-root-helper'
@@ -73,7 +74,7 @@ def resolve(info=None, stack=None, extras=()):
     info = info or hw.detect()
     prof = info['profile']
     sysdef = stack['system'][prof]
-    system = {'id': 'system', 'title': sysdef['title'], 'packages': list(sysdef['packages']), 'license': sysdef['license'],
+    system = {'id': 'system', 'title': loc(sysdef, 'title'), 'packages': list(sysdef['packages']), 'license': loc(sysdef, 'license'),
               'size_gb': sysdef.get('size_gb', 0), 'optional': {}}
     for k, pk in sysdef.get('optional', {}).items():
         on = k in extras or (k == 'cuda' and prof == 'nvidia') or (k == 'rocm' and info.get('rocm') in ('yes', 'override'))
@@ -81,9 +82,9 @@ def resolve(info=None, stack=None, extras=()):
     tools, comps, models = [], [], []
     for t in stack['tools']:
         chosen = next((v for v in t['variants'] if variant_fits(v, info)), None)
-        entry = {'id': t['id'], 'title': t['title'], 'area': t['area'], 'engine': t['engine'], 'variant': chosen['id'] if chosen else None,
-                 'label': chosen['label'] if chosen else 'nicht verfügbar', 'off': bool(chosen and chosen.get('off')) or not chosen,
-                 'lite': bool(chosen and (chosen.get('min_vram', 0) == 0 and len(t['variants']) > 1)), 'note': (chosen or {}).get('note', ''),
+        entry = {'id': t['id'], 'title': loc(t, 'title'), 'area': loc(t, 'area'), 'engine': t['engine'], 'variant': chosen['id'] if chosen else None,
+                 'label': loc(chosen, 'label') if chosen else tr('nicht verfügbar', 'not available'), 'off': bool(chosen and chosen.get('off')) or not chosen,
+                 'lite': bool(chosen and (chosen.get('min_vram', 0) == 0 and len(t['variants']) > 1)), 'note': loc(chosen or {}, 'note'),
                  'components': [], 'models': []}
         sel = [chosen] if chosen else []
         for o in t.get('optional', []):
@@ -103,11 +104,11 @@ def resolve(info=None, stack=None, extras=()):
     comp_list = []
     for c in comps:
         d = stack['components'][c]
-        comp_list.append({'id': c, 'title': d['title'], 'license': d['license'], 'size_gb': d.get('size_gb', 0), 'kind': d['kind']})
+        comp_list.append({'id': c, 'title': loc(d, 'title'), 'license': loc(d, 'license'), 'size_gb': d.get('size_gb', 0), 'kind': d['kind']})
     model_list = []
     for m in models:
         d = stack['models'][m]
-        model_list.append({'id': m, 'repo': d.get('repo') or d.get('ollama'), 'license': d['license'], 'size_gb': d.get('size_gb', 0)})
+        model_list.append({'id': m, 'repo': d.get('repo') or d.get('ollama'), 'license': loc(d, 'license'), 'size_gb': d.get('size_gb', 0)})
     total = system['size_gb'] + sum(o['size_gb'] for o in system['optional'].values() if o['enabled']) + \
         sum(c['size_gb'] for c in comp_list) + sum(m['size_gb'] for m in model_list)
     return {'hardware': info, 'system': system, 'tools': tools, 'components': comp_list, 'models': model_list,
@@ -158,7 +159,7 @@ class Runner:
             p = subprocess.Popen(cmd, cwd=cwd, env=e, stdin=subprocess.PIPE if stdin_data else subprocess.DEVNULL,
                                  stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
         except OSError as ex:
-            self.log(f'Programm fehlt: {cmd[0]} ({ex})')
+            self.log(tr(f'Programm fehlt: {cmd[0]} ({ex})', f'Program missing: {cmd[0]} ({ex})'))
             return False
         if stdin_data:
             try:
@@ -174,7 +175,7 @@ class Runner:
                 self.emit(ev='item', id=item, state='run', msg=line[-160:])
         p.wait()
         if p.returncode != 0:
-            self.log(f'Fehler (Exit {p.returncode}): ' + ' '.join(cmd[:4]))
+            self.log(tr(f'Fehler (Exit {p.returncode}): ', f'Error (exit {p.returncode}): ') + ' '.join(cmd[:4]))
         return p.returncode == 0
 
     # -- steps
@@ -187,7 +188,7 @@ class Runner:
         self.emit(ev='item', id='system', state='run', p=None, msg=s['title'])
         pk = missing_packages(pk)
         if not pk and not (self.prof == 'nvidia' and not os.path.exists('/etc/mkinitcpio.conf.d/10-toravo-nvidia.conf')):
-            self.emit(ev='item', id='system', state='skip', p=1.0, msg='schon installiert')
+            self.emit(ev='item', id='system', state='skip', p=1.0, msg=tr('schon installiert', 'already installed'))
             self.state['system'] = {'profile': self.prof, 'packages': [], 'at': time.time(), 'reboot': False}
             return True
         ok = self.run(['install-packages'] + pk, 'system', root=True) if pk else True
@@ -217,7 +218,7 @@ class Runner:
         d = self.stack['components'][cid]
         item = 'comp:' + cid
         if self.state['components'].get(cid, {}).get('ok'):
-            self.emit(ev='item', id=item, state='skip', p=1.0, msg='schon eingerichtet')
+            self.emit(ev='item', id=item, state='skip', p=1.0, msg=tr('schon eingerichtet', 'already set up'))
             return True
         self.emit(ev='item', id=item, state='run', p=None, msg=d['title'])
         ok = True
@@ -322,7 +323,7 @@ class Runner:
                 os.replace(part, path)
                 return True
             except (urllib.error.URLError, OSError, ValueError) as e:
-                self.log(f'Download-Fehler ({attempt + 1}/5): {e}')
+                self.log(tr(f'Download-Fehler ({attempt + 1}/5): {e}', f'Download error ({attempt + 1}/5): {e}'))
                 time.sleep(3 * (attempt + 1))
                 have = os.path.getsize(part) if os.path.exists(part) else 0
                 if have:
@@ -333,7 +334,7 @@ class Runner:
         d = self.stack['models'][mid]
         item = 'model:' + mid
         if self.state['models'].get(mid, {}).get('ok'):
-            self.emit(ev='item', id=item, state='skip', p=1.0, msg='schon geladen')
+            self.emit(ev='item', id=item, state='skip', p=1.0, msg=tr('schon geladen', 'already downloaded'))
             return True
         self.emit(ev='item', id=item, state='run', p=0.0, msg=d.get('repo') or d.get('ollama'))
         ok = True
@@ -469,10 +470,10 @@ def main():
             print(json.dumps(plan, indent=2, ensure_ascii=False))
             return
         h = plan['hardware']
-        print(f"Profil {h['profile']} · {h['tier']} · {h['vram_gb']} GB VRAM · {h['gpu']}")
+        print(tr('Profil', 'Profile') + f" {h['profile']} · {h['tier']} · {h['vram_gb']} GB VRAM · {h['gpu']}")
         for t in plan['tools']:
-            print(f"  {t['title']:<28} {'AUS' if t['off'] else 'an '}  {t['label']}")
-        print(f"Download/Installation gesamt: ca. {plan['total_gb']} GB")
+            print(f"  {t['title']:<28} {tr('AUS', 'OFF') if t['off'] else tr('an ', 'on ')}  {t['label']}")
+        print(tr('Download/Installation gesamt: ca. ', 'Download/install total: approx. ') + f"{plan['total_gb']} GB")
     elif cmd == 'install':
         only = set(a[a.index('--only') + 1].split(',')) if '--only' in a else None
         plan = resolve(stack=stack, extras=extras)
@@ -483,12 +484,12 @@ def main():
     elif cmd == 'status':
         st = load_state(stack)
         print(json.dumps(st, indent=2, ensure_ascii=False) if as_json else
-              '\n'.join(f"{k}: {'ok' if v.get('ok') else 'fehlt'}" for sec in ('components', 'models') for k, v in st.get(sec, {}).items()) or 'nichts installiert')
+              '\n'.join(f"{k}: {'ok' if v.get('ok') else tr('fehlt', 'missing')}" for sec in ('components', 'models') for k, v in st.get(sec, {}).items()) or tr('nichts installiert', 'nothing installed'))
     elif cmd == 'licenses':
         for cid, c in stack['components'].items():
-            print(f"{c['title']:<28} {c['license']}")
+            print(f"{loc(c, 'title'):<28} {loc(c, 'license')}")
         for mid, m in stack['models'].items():
-            print(f"{(m.get('repo') or m.get('ollama')):<45} {m['license']}")
+            print(f"{(m.get('repo') or m.get('ollama')):<45} {loc(m, 'license')}")
     else:
         print(__doc__)
 

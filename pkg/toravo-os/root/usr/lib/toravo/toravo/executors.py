@@ -5,11 +5,12 @@ template thumbnails, Piper, Whisper small on CPU) run on any machine.
 """
 import glob, json, math, os, random, re, shutil, struct, subprocess, time, urllib.request, uuid
 from . import stack
+from .theme import tr, folder
 
 HOME = os.path.expanduser('~/Toravo')
 OUT = {k: os.path.join(HOME, v) for k, v in {'song': 'Songs', 'voice': 'Voice', 'video': 'Videos', 'shorts': 'Shorts',
                                              'thumbnail': 'Thumbnails', 'stems': 'Songs/Stems', 'master': 'Songs/Master',
-                                             'transcribe': 'Projekte/Untertitel'}.items()}
+                                             'transcribe': os.path.join(folder('Projekte', 'Projects'), tr('Untertitel', 'Subtitles'))}.items()}
 RUNNERS = '/usr/lib/toravo/runners'
 WORKFLOWS = '/usr/share/toravo/workflows'
 COMFY = 'http://127.0.0.1:8188'
@@ -23,7 +24,8 @@ def slug(s):
 
 
 def need(tool, why):
-    return {'state': 'needs_tool', 'error': why + ' – Toravo Setup (Command Bar → „Toravo Setup“) richtet es ein, falls deine Hardware es kann.'}
+    return {'state': 'needs_tool', 'error': why + tr(' – Toravo Setup (Command Bar → „Toravo Setup“) richtet es ein, falls deine Hardware es kann.',
+                                                   ' – Toravo Setup (Command Bar → “Toravo Setup”) sets it up if your hardware can run it.')}
 
 
 def base():
@@ -163,7 +165,7 @@ def comfy_up(prog):
         return True
     subprocess.run(['systemctl', '--user', 'start', 'toravo-comfyui.service'], capture_output=True)
     for i in range(90):
-        prog(None, f'ComfyUI startet … {i * 2}s')
+        prog(None, tr('ComfyUI startet …', 'ComfyUI starting …') + f' {i * 2}s')
         if alive():
             return True
         time.sleep(2)
@@ -198,7 +200,7 @@ def comfy_run(workflow, values, outdir, prog, label):
         if pid in hist:
             h = hist[pid]
             if h.get('status', {}).get('status_str') == 'error':
-                raise RuntimeError('ComfyUI-Fehler: ' + json.dumps(h['status'].get('messages', []))[-300:])
+                raise RuntimeError(tr('ComfyUI-Fehler: ', 'ComfyUI error: ') + json.dumps(h['status'].get('messages', []))[-300:])
             files = []
             for node in h.get('outputs', {}).values():
                 for key in ('images', 'videos', 'gifs', 'audio'):
@@ -209,7 +211,7 @@ def comfy_run(workflow, values, outdir, prog, label):
                             shutil.copyfileobj(r, f)
                         files.append(dst)
             return files
-        prog(None, f'{label} · ComfyUI rechnet … {int(time.time() - t0)}s')
+        prog(None, f'{label} · ' + tr('ComfyUI rechnet …', 'ComfyUI rendering …') + f' {int(time.time() - t0)}s')
 
 
 import urllib.parse  # noqa: E402
@@ -235,7 +237,7 @@ def llm(prompt, fallback):
 # ------------------------------------------------------------------------------------------------ song
 def do_song(job, deps, prog):
     if not stack.tool_ready('song'):
-        return need('song', 'YuE2 ist nicht eingerichtet (braucht NVIDIA mit ≥ 16 GB VRAM)')
+        return need('song', tr('YuE2 ist nicht eingerichtet (braucht NVIDIA mit ≥ 16 GB VRAM)', 'YuE2 is not set up (needs NVIDIA with ≥ 16 GB VRAM)'))
     p = job['params']
     subject = job.get('subject') or 'song'
     style = p.get('style') or subject
@@ -278,14 +280,14 @@ def do_voice(job, deps, prog):
         lang = 'de' if re.search(r'[äöüß]|\b(und|der|die|das|ist)\b', text.lower()) else 'en'
         onnx = glob.glob(os.path.join(voices, ('de_DE' if lang == 'de' else 'en_US') + '*.onnx'))
         if not onnx:
-            return need('voice', 'Piper-Stimme fehlt')
-        prog(.3, 'Piper spricht …')
+            return need('voice', tr('Piper-Stimme fehlt', 'Piper voice missing'))
+        prog(.3, tr('Piper spricht …', 'Piper is speaking …'))
         piper = os.path.join(base(), 'piper', '.venv', 'bin', 'piper')
         r = subprocess.run([piper, '-m', onnx[0], '-f', out], input=text, text=True, capture_output=True)
         if r.returncode != 0:
             raise RuntimeError(r.stderr[-300:])
     else:
-        return need('voice', 'Keine Sprach-Engine eingerichtet')
+        return need('voice', tr('Keine Sprach-Engine eingerichtet', 'No speech engine set up'))
     return {'outputs': [out]}
 
 
@@ -306,21 +308,21 @@ def transcribe(src, out_srt, prog, words=False):
 def do_transcribe(job, deps, prog):
     src = find_input(job, deps, AUDIO_EXT + VIDEO_EXT, HOME)
     if not src:
-        return {'state': 'failed', 'error': 'Keine Audio-/Videodatei gefunden.'}
+        return {'state': 'failed', 'error': tr('Keine Audio-/Videodatei gefunden.', 'No audio/video file found.')}
     os.makedirs(OUT['transcribe'], exist_ok=True)
     out = os.path.join(OUT['transcribe'], os.path.splitext(os.path.basename(src))[0] + '.srt')
     if not transcribe(src, out, prog):
-        return need('whisper', 'Whisper ist nicht eingerichtet')
+        return need('whisper', tr('Whisper ist nicht eingerichtet', 'Whisper is not set up'))
     return {'outputs': [out]}
 
 
 # ------------------------------------------------------------------------------------------------ stems / master
 def do_stems(job, deps, prog):
     if not stack.tool_ready('stems'):
-        return need('stems', 'Demucs ist nicht eingerichtet')
+        return need('stems', tr('Demucs ist nicht eingerichtet', 'Demucs is not set up'))
     src = find_input(job, deps, AUDIO_EXT, OUT['song'])
     if not src:
-        return {'state': 'failed', 'error': 'Kein Song gefunden.'}
+        return {'state': 'failed', 'error': tr('Kein Song gefunden.', 'No song found.')}
     os.makedirs(OUT['stems'], exist_ok=True)
     run_cmd([os.path.join(base(), 'demucs', '.venv', 'bin', 'demucs'), '-n', 'htdemucs', '-o', OUT['stems'], src], prog, 'Demucs',
             parse=lambda l: (int(m.group(1)) / 100) if (m := re.search(r'(\d+)%\|', l)) else None)
@@ -330,13 +332,13 @@ def do_stems(job, deps, prog):
 
 def do_master(job, deps, prog):
     if not stack.tool_ready('master'):
-        return need('master', 'Matchering ist nicht eingerichtet')
+        return need('master', tr('Matchering ist nicht eingerichtet', 'Matchering is not set up'))
     src = find_input(job, deps, AUDIO_EXT, OUT['song'])
     ref = os.path.expanduser(job['params'].get('reference') or '')
     if not ref or not os.path.exists(ref):
-        ref = latest(os.path.join(HOME, 'Referenzen'), AUDIO_EXT)
+        ref = latest(os.path.join(HOME, folder('Referenzen', 'References')), AUDIO_EXT)
     if not src or not ref:
-        return {'state': 'failed', 'error': 'Song oder Referenz-Track fehlt (Referenzen in ~/Toravo/Referenzen ablegen).'}
+        return {'state': 'failed', 'error': tr('Song oder Referenz-Track fehlt (Referenzen in ~/Toravo/Referenzen ablegen).', 'Song or reference track missing (put references in ~/Toravo/References).')}
     os.makedirs(OUT['master'], exist_ok=True)
     out = os.path.join(OUT['master'], os.path.splitext(os.path.basename(src))[0] + '-master.wav')
     run_cmd([venv_py('matchering'), os.path.join(RUNNERS, 'matchering_run.py'), src, ref, out], prog, 'Matchering')
@@ -439,10 +441,10 @@ def do_thumbnail(job, deps, prog):
         s = stack.load_stack()
         v = next(x for x in next(t for t in s['tools'] if t['id'] == 'thumbnail')['variants'] if x['id'] == st['tools']['thumbnail']['variant'])
         if not comfy_up(prog):
-            return {'state': 'failed', 'error': 'ComfyUI startet nicht.'}
+            return {'state': 'failed', 'error': tr('ComfyUI startet nicht.', 'ComfyUI does not start.')}
         prompt = job['params'].get('prompt') or f'YouTube thumbnail background for "{subject}", cinematic, dramatic light, high contrast, no text'
         for k, seed in enumerate((random.randint(1, 2**31), random.randint(1, 2**31))):
-            prog(.1 + .4 * k, f'Qwen-Image Variante {"AB"[k]}')
+            prog(.1 + .4 * k, tr('Qwen-Image Variante', 'Qwen-Image variant') + f' {"AB"[k]}')
             files = comfy_run(v['workflow'], {'PROMPT': prompt, 'NEG': 'text, watermark, logo, blurry', 'SEED': seed, 'W': 1664, 'H': 928,
                                               'UNET': v['unet'], 'PREFIX': 'toravo/thumb'}, OUT['thumbnail'], prog, 'Thumbnail')
             if files:
@@ -456,7 +458,7 @@ def do_thumbnail(job, deps, prog):
     os.makedirs(tmp, exist_ok=True)
     dur = duration(vid) if vid else 0
     for k in range(2):
-        prog(.2 + .4 * k, f'Vorlage {"AB"[k]}')
+        prog(.2 + .4 * k, tr('Vorlage', 'Template') + f' {"AB"[k]}')
         fr = frame_at(vid, dur * (.35 if k == 0 else .62), os.path.join(tmp, f'{job["id"]}-{k}.png')) if vid else None
         outs.append(toravo_card(os.path.join(OUT['thumbnail'], f'{slug(subject)}-{"AB"[k]}.png'), 1280, 720, title,
                                 'Toravo', fr, k))
@@ -467,7 +469,8 @@ def do_thumbnail(job, deps, prog):
 def do_video(job, deps, prog):
     song = find_input(job, deps, AUDIO_EXT, OUT['song'])
     if not song:
-        return {'state': 'failed', 'error': 'Kein Song für das Musikvideo gefunden (vorher „Song machen“ oder Datei in ~/Toravo/Songs).'}
+        return {'state': 'failed', 'error': tr('Kein Song für das Musikvideo gefunden (vorher „Song machen“ oder Datei in ~/Toravo/Songs).',
+                                                  'No song found for the music video (first “Make a song” or put a file in ~/Toravo/Songs).')}
     subject = job.get('subject') or os.path.splitext(os.path.basename(song))[0]
     os.makedirs(OUT['video'], exist_ok=True)
     out = os.path.join(OUT['video'], f'{slug(subject)}.mp4')
@@ -479,7 +482,7 @@ def do_video(job, deps, prog):
     srt = os.path.join(work, 'lyrics.srt')
     has_srt = False
     try:
-        prog(.02, 'Lyrics-Untertitel (Whisper) …')
+        prog(.02, tr('Lyrics-Untertitel (Whisper) …', 'Lyric captions (Whisper) …'))
         has_srt = transcribe(song, srt, None)
     except RuntimeError:
         has_srt = False
@@ -494,14 +497,14 @@ def do_video(job, deps, prog):
           f"[0:v]scale=1920:1080,format=rgba[b];[b][w]overlay=0:H-h-200:shortest=1{sub},format=yuv420p[v]")
     ffmpeg_encode(['-loop', '1', '-framerate', '30', '-i', bg, '-i', song, '-loop', '1', '-framerate', '30', '-i', grad], fg, ['[v]', '1:a'], out,
                   prog, total, ['-shortest', '-r', '30'])
-    return {'outputs': [out], 'step': 'fertig (Lite-Musikvideo)'}
+    return {'outputs': [out], 'step': tr('fertig (Lite-Musikvideo)', 'done (Lite music video)')}
 
 
 def video_ltx(job, song, subject, total, out, work, srt, prog, var):
     s = stack.load_stack()
     v = next(x for x in next(t for t in s['tools'] if t['id'] == 'video')['variants'] if x['id'] == var)
     if not comfy_up(prog):
-        return {'state': 'failed', 'error': 'ComfyUI startet nicht.'}
+        return {'state': 'failed', 'error': tr('ComfyUI startet nicht.', 'ComfyUI does not start.')}
     clip_s = 97 / 24
     n = max(4, min(60, int(math.ceil(total / clip_s)))) if total else 12
     style = job['params'].get('style') or subject
@@ -512,7 +515,7 @@ def video_ltx(job, song, subject, total, out, work, srt, prog, var):
         scenes.append(f'cinematic music video scene for "{subject}", {style}, shot {len(scenes) + 1}, dramatic light, camera slowly moving')
     clips = []
     for i, sc in enumerate(scenes):
-        prog(i / n * .9, f'Szene {i + 1}/{n} · LTX-Video')
+        prog(i / n * .9, tr('Szene', 'Scene') + f' {i + 1}/{n} · LTX-Video')
         files = comfy_run(v['workflow'], {'PROMPT': sc, 'NEG': 'worst quality, blurry, jittery, distorted, text, watermark', 'SEED': random.randint(1, 2**31),
                                           'W': 768, 'H': 512, 'FRAMES': 97, 'CKPT': v['ckpt'], 'PREFIX': f'toravo/{job["id"]}/clip'},
                           work, prog, f'Szene {i + 1}/{n}')
@@ -558,12 +561,13 @@ def pick_windows(vals, length, count):
 def do_shorts(job, deps, prog):
     src = find_input(job, deps, VIDEO_EXT, OUT['video'])
     if not src:
-        return {'state': 'failed', 'error': 'Kein Video gefunden (vorher „Musikvideo rendern“ oder Datei in ~/Toravo/Videos).'}
+        return {'state': 'failed', 'error': tr('Kein Video gefunden (vorher „Musikvideo rendern“ oder Datei in ~/Toravo/Videos).',
+                                                  'No video found (first “Render music video” or put a file in ~/Toravo/Videos).')}
     count = int(job['params'].get('count') or 3)
     length = float(job['params'].get('length') or 30)
     subject = job.get('subject') or os.path.splitext(os.path.basename(src))[0]
     os.makedirs(OUT['shorts'], exist_ok=True)
-    prog(.03, 'suche die stärksten Momente …')
+    prog(.03, tr('suche die stärksten Momente …', 'finding the strongest moments …'))
     total = duration(src)
     length = min(length, max(5.0, total))
     if total and count * length >= total - 1:  # not enough material for N separate cuts -> shorter cuts
@@ -599,7 +603,8 @@ def do_shorts(job, deps, prog):
         ffmpeg_encode(['-ss', str(st), '-t', str(length), '-i', src], fg, ['[v]', '0:a?'], out,
                       lambda p, s: prog(base_p + (p or 0) / len(starts), f'Short {k + 1}/{len(starts)} · {s or ""}'), length)
         outs.append(out)
-    return {'outputs': outs, 'step': f'{len(outs)} Shorts fertig' + ('' if stack.tool_ready('whisper') else ' (ohne Untertitel – Whisper fehlt)')}
+    return {'outputs': outs, 'step': tr(f'{len(outs)} Shorts fertig', f'{len(outs)} Shorts done') +
+            ('' if stack.tool_ready('whisper') else tr(' (ohne Untertitel – Whisper fehlt)', ' (no captions – Whisper missing)'))}
 
 
 # ------------------------------------------------------------------------------------------------ stream
@@ -608,7 +613,7 @@ def start_stream():
     state = os.path.expanduser('~/.local/state/toravo')
     os.makedirs(state, exist_ok=True)
     if not shutil.which('obs'):
-        subprocess.Popen(['notify-send', '-a', 'Toravo', 'OBS fehlt', 'Toravo Setup → Streams (OBS) einrichten.'])
+        subprocess.Popen(['notify-send', '-a', 'Toravo', tr('OBS fehlt', 'OBS missing'), tr('Toravo Setup → Streams (OBS) einrichten.', 'Toravo Setup → set up Streams (OBS).')])
         return None
     p = subprocess.Popen(['obs', '--startstreaming', '--minimize-to-tray', '--disable-shutdown-check'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     with open(os.path.join(state, 'live.json'), 'w') as f:
@@ -623,5 +628,5 @@ EXEC = {'song': do_song, 'voice': do_voice, 'video': do_video, 'shorts': do_shor
 def run(job, deps, prog):
     fn = EXEC.get(job['kind'])
     if not fn:
-        return {'state': 'failed', 'error': 'Unbekannte Job-Art: ' + job['kind']}
+        return {'state': 'failed', 'error': tr('Unbekannte Job-Art: ', 'Unknown job kind: ') + job['kind']}
     return fn(job, deps, prog)

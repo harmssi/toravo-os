@@ -1,6 +1,7 @@
 [Desktop Entry]
 Name=Toravo OS Lite
-Comment=Einfache Sitzung (labwc) für schwache Grafik, alte GPUs und VMs
+Comment=Simple session (labwc) for weak graphics, old GPUs and VMs
+Comment[de]=Einfache Sitzung (labwc) für schwache Grafik, alte GPUs und VMs
 Exec=/usr/bin/toravo-session lite
 Type=Application
 DesktopNames=labwc;wlroots

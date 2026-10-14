@@ -1,5 +1,6 @@
 """Waybar modules: toravo-bar gpu|queue|live|install  -> one JSON line {text, class, tooltip}."""
 import glob, json, os, subprocess, sys
+from .theme import tr
 
 
 def out(text, cls='', tip=''):
@@ -35,7 +36,7 @@ def gpu():
             return out(txt, 'hot' if temp and int(temp) >= 85000 else '', 'AMD GPU')
     try:
         l1 = os.getloadavg()[0]
-        return out(f'CPU {min(100, int(l1 / (os.cpu_count() or 1) * 100))}%', '', 'keine GPU-Werte verfügbar')
+        return out(f'CPU {min(100, int(l1 / (os.cpu_count() or 1) * 100))}%', '', tr('keine GPU-Werte verfügbar', 'no GPU stats available'))
     except OSError:
         return out('GPU –')
 
@@ -51,7 +52,7 @@ def queue():
     act = [j for j in jobs if j.get('state') in ('queued', 'running')]
     run = [j for j in act if j.get('state') == 'running']
     if not act:
-        return out('0 JOBS', 'idle', 'Render-Queue leer')
+        return out('0 JOBS', 'idle', tr('Render-Queue leer', 'Render queue empty'))
     txt = f'▮ {len(act)} JOB{"S" if len(act) != 1 else ""}'
     if run:
         txt += f' · {int(run[0].get("progress", 0) * 100)}%'
@@ -64,7 +65,7 @@ def live():
     try:
         st = json.load(open(p))
         if os.path.exists(f'/proc/{int(st["pid"])}'):
-            return out('● LIVE', 'live', 'OBS streamt')
+            return out('● LIVE', 'live', tr('OBS streamt', 'OBS is streaming'))
         os.remove(p)
     except (OSError, ValueError, KeyError):
         pass
@@ -72,7 +73,8 @@ def live():
 
 
 def install():
-    out('Toravo OS installieren' if os.path.isdir('/run/archiso') else '', 'install', 'Toravo OS auf diesen Rechner installieren')
+    out(tr('Toravo OS installieren', 'Install Toravo OS') if os.path.isdir('/run/archiso') else '', 'install',
+        tr('Toravo OS auf diesen Rechner installieren', 'Install Toravo OS on this computer'))
 
 
 if __name__ == '__main__':

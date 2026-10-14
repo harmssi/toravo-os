@@ -3,5 +3,7 @@
 cp -rn /usr/share/toravo/skel/. "$HOME/" 2>/dev/null
 mkdir -p "$HOME/.config/toravo" "$HOME/.local/share/toravo/queue" "$HOME/.local/state/toravo"
 command -v xdg-user-dirs-update >/dev/null && xdg-user-dirs-update >/dev/null 2>&1
-for d in Songs Voice Videos Shorts Thumbnails Projekte Streams; do mkdir -p "$HOME/Toravo/$d"; done
+. /usr/lib/toravo/locale.sh
+proj=Projekte; [ "$(toravo_ui)" = en ] && [ ! -d "$HOME/Toravo/Projekte" ] && proj=Projects  # English systems: English folder names
+for d in Songs Voice Videos Shorts Thumbnails "$proj" Streams; do mkdir -p "$HOME/Toravo/$d"; done
 exit 0
