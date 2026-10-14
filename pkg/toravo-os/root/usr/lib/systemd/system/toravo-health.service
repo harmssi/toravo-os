@@ -1,0 +1,13 @@
+[Unit]
+ConditionPathExists=!/run/archiso
+Description=Toravo Update: health check of the desktop after an update (else automatic rollback)
+After=graphical.target toravo-rollback-finish.service
+ConditionPathExists=/var/log/toravo-update/state.json
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/toravo-update health
+TimeoutStartSec=10min
+
+[Install]
+WantedBy=graphical.target

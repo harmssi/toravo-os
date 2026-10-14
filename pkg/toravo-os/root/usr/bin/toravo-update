@@ -1,0 +1,4 @@
+#!/bin/bash
+# Toravo OS: update (Toravo Update – see /usr/share/doc/toravo-os/UPDATES.md)
+export PYTHONPATH=/usr/lib/toravo${PYTHONPATH:+:$PYTHONPATH}
+exec python3 -m toravo.update "$@"

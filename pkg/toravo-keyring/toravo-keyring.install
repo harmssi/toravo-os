@@ -1,0 +1,6 @@
+post_install() {
+  if [ -d /etc/pacman.d/gnupg ] && [ -f /etc/pacman.d/gnupg/pubring.gpg -o -f /etc/pacman.d/gnupg/pubring.kbx ]; then
+    pacman-key --populate toravo >/dev/null 2>&1 || true
+  fi
+}
+post_upgrade() { post_install; }

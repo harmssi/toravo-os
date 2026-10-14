@@ -1,0 +1,4 @@
+#!/bin/bash
+# Toravo OS: Updates page (GTK)
+export PYTHONPATH=/usr/lib/toravo${PYTHONPATH:+:$PYTHONPATH}
+exec python3 -m toravo.updates_app "$@"

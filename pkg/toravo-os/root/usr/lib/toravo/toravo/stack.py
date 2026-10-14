@@ -5,6 +5,8 @@ CLI (toravo-ai):
   toravo-ai install [--only a,b] [--json] [--dry-run] [--no-system] [--with cuda,rocm,ltx2]
   toravo-ai status [--json]                installed parts
   toravo-ai licenses                       license table
+  toravo-ai models-check [--json]          installed AI models with a newer version at the source (optional updates)
+  toravo-ai models-update <id,id> [--json] download the new model version (old files stay until it is complete)
 Progress with --json: one JSON object per line: {"ev": "item"|"log"|"plan"|"done", ...}
 Models are never part of the ISO – they are downloaded here, resumable (.part files).
 """
@@ -362,7 +364,7 @@ class Runner:
                 if not ok:
                     break
                 done += f['size']
-        self.state['models'][mid] = {'ok': ok, 'at': time.time()}
+        self.state['models'][mid] = {'ok': ok, 'at': time.time(), 'rev': remote_rev(d) if ok and not self.dry else None}
         save_state(self.state, self.stack) if not self.dry else None
         self.emit(ev='item', id=item, state='done' if ok else 'fail', p=1.0)
         return ok
@@ -441,6 +443,93 @@ def fmt_bytes(n):
         n /= 1024
 
 
+# ------------------------------------------------------------------------------------------------ model updates (optional)
+def remote_rev(d):
+    """Current revision of a model at its source: Hugging Face commit sha or Ollama manifest digest (12 hex like `ollama list`)."""
+    try:
+        if d.get('ollama'):
+            name, _, tag = d['ollama'].partition(':')
+            name = name if '/' in name else 'library/' + name
+            req = urllib.request.Request(f'https://registry.ollama.ai/v2/{name}/manifests/{tag or "latest"}',
+                                         headers={'User-Agent': UA, 'Accept': 'application/vnd.docker.distribution.manifest.v2+json'})
+            import hashlib
+            with urllib.request.urlopen(req, timeout=20) as r:
+                return hashlib.sha256(r.read()).hexdigest()[:12]
+        req = urllib.request.Request(f'https://huggingface.co/api/models/{d["repo"]}', headers={'User-Agent': UA})
+        tok = hf_token()
+        if tok:
+            req.add_header('Authorization', 'Bearer ' + tok)
+        with urllib.request.urlopen(req, timeout=20) as r:
+            return json.load(r).get('sha')
+    except (OSError, ValueError, KeyError):
+        return None
+
+
+def local_ollama_rev(model):
+    try:
+        out = subprocess.run(['ollama', 'list'], capture_output=True, text=True, timeout=20).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    for line in out.splitlines()[1:]:
+        p = line.split()
+        if len(p) >= 2 and (p[0] == model or p[0] == model + ':latest'):
+            return p[1]
+    return None
+
+
+def models_check():
+    """Installed models with a newer version at the source. First check without a stored revision records it (baseline)."""
+    stack = load_stack()
+    st = load_state(stack)
+    res, changed = [], False
+    for mid, info in st.get('models', {}).items():
+        d = stack['models'].get(mid)
+        if not d or not info.get('ok'):
+            continue
+        new = remote_rev(d)
+        cur = info.get('rev') or (local_ollama_rev(d['ollama']) if d.get('ollama') else None)
+        if not cur and new:
+            info['rev'] = cur = new
+            changed = True
+        res.append({'id': mid, 'name': d.get('repo') or d.get('ollama'), 'size_gb': d.get('size_gb', 0), 'license': loc(d, 'license'),
+                    'current': cur, 'latest': new, 'update': bool(new and cur and new != cur)})
+    if changed:
+        save_state(st, stack)
+    return res
+
+
+def models_update(ids, as_json=False):
+    """Download the new version next to the old one; the old files are only removed when the new download is complete."""
+    stack = load_stack()
+    plan = resolve(stack=stack)
+    r = Runner(plan, stack, as_json)
+    ok_all = True
+    for mid in ids:
+        d = stack['models'][mid]
+        if d.get('ollama'):
+            ok = r.run(['ollama', 'pull', d['ollama']], 'model:' + mid)
+            if ok:
+                r.state['models'].setdefault(mid, {})['rev'] = local_ollama_rev(d['ollama']) or remote_rev(d)
+        else:
+            dest = model_dest(stack, mid)
+            old = dest + '.toravo-old'
+            if os.path.exists(dest):
+                shutil.rmtree(old, ignore_errors=True)
+                os.rename(dest, old)
+            r.state['models'][mid] = {'ok': False}
+            ok = r.model(mid)
+            if ok:
+                shutil.rmtree(old, ignore_errors=True)
+            elif os.path.exists(old):
+                shutil.rmtree(dest, ignore_errors=True)
+                os.rename(old, dest)
+                r.state['models'][mid] = {'ok': True, 'rev': None}
+        ok_all = ok_all and ok
+        save_state(r.state, stack)
+    r.emit(ev='done', ok=ok_all, failed=[] if ok_all else ids, reboot=False)
+    return ok_all
+
+
 def tool_ready(tool_id, state=None):
     """Is a tool installed (all components/models ok)? Used by Command Bar / Studio / queue."""
     stack = load_stack()
@@ -485,6 +574,15 @@ def main():
         st = load_state(stack)
         print(json.dumps(st, indent=2, ensure_ascii=False) if as_json else
               '\n'.join(f"{k}: {'ok' if v.get('ok') else tr('fehlt', 'missing')}" for sec in ('components', 'models') for k, v in st.get(sec, {}).items()) or tr('nichts installiert', 'nothing installed'))
+    elif cmd == 'models-check':
+        res = models_check()
+        if as_json:
+            print(json.dumps(res, indent=2, ensure_ascii=False))
+        else:
+            for m in res:
+                print(f"{m['name']:<45} {m['size_gb']:5.1f} GB  " + (tr('UPDATE VERFÜGBAR', 'UPDATE AVAILABLE') if m['update'] else tr('aktuell', 'up to date')))
+    elif cmd == 'models-update':
+        sys.exit(0 if models_update(a[1].split(','), as_json) else 1)
     elif cmd == 'licenses':
         for cid, c in stack['components'].items():
             print(f"{loc(c, 'title'):<28} {loc(c, 'license')}")

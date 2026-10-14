@@ -269,6 +269,9 @@ def system(c):
     progress('system', .35, tr('Schlüssel für Paket-Updates …', 'Keys for package updates …'))
     sh(['pacman-key', '--init'], chroot=True)
     sh(['pacman-key', '--populate', 'archlinux'], chroot=True)
+    # Toravo Update (14.10.2026): signed [toravo] repo + channel "stable" pinned to the Arch date of this ISO
+    snap = open('/etc/toravo/arch-snapshot').read().strip() if os.path.exists('/etc/toravo/arch-snapshot') else ''
+    sh(['toravo-update', 'setup'] + (['--snapshot', snap] if re.match(r'^\d{4}/\d{2}/\d{2}$', snap) else []), check=False, chroot=True)
     progress('system', .6, tr('Snapshots, Swap, Dienste …', 'Snapshots, swap, services …'))
     snap_tpl = f'{T}/usr/share/snapper/config-templates/default'
     if os.path.exists(snap_tpl):
@@ -323,7 +326,7 @@ def drivers(c):
 def boot(c):
     progress('boot', 0, 'Bootloader …')
     root_uuid = uuid_of(c['_root'])
-    opts = f'root=UUID={root_uuid} rootflags=subvol=@ rw quiet splash loglevel=3 rd.udev.log_level=3 vt.global_cursor_default=0'
+    opts = f'root=UUID={root_uuid} rootflags=subvol=@ rw quiet splash loglevel=3 rd.udev.log_level=3 vt.global_cursor_default=0 panic=10'
     if c.get('_nvidia'):
         opts += ' nvidia_drm.modeset=1'
     if c['_uefi']:
@@ -331,15 +334,15 @@ def boot(c):
             sh(['bootctl', 'install', '--esp-path=/efi', '--boot-path=/boot'], chroot=True)
         else:
             sh(['bootctl', 'install', '--esp-path=/boot'], chroot=True)
-        write('/boot/loader/entries/toravo.conf', f'title   Toravo OS\nlinux   /vmlinuz-linux\ninitrd  /initramfs-linux.img\noptions {opts}\n')
-        write('/boot/loader/entries/toravo-fallback.conf', f'title   Toravo OS ({tr("Notfall", "fallback")})\nlinux   /vmlinuz-linux\ninitrd  /initramfs-linux-fallback.img\n'
+        write('/boot/loader/entries/toravo.conf', f'title   Toravo OS\nsort-key toravo-1\nlinux   /vmlinuz-linux\ninitrd  /initramfs-linux.img\noptions {opts}\n')
+        write('/boot/loader/entries/toravo-fallback.conf', f'title   Toravo OS ({tr("Notfall", "fallback")})\nsort-key toravo-3\nlinux   /vmlinuz-linux\ninitrd  /initramfs-linux-fallback.img\n'
               f'options root=UUID={root_uuid} rootflags=subvol=@ rw\n')
         loader = '/efi/loader/loader.conf' if c.get('_xboot') else '/boot/loader/loader.conf'
         write(loader, 'default toravo.conf\ntimeout 3\nconsole-mode max\neditor no\n')
         sh(['systemctl', 'enable', 'systemd-boot-update.service'], check=False, chroot=True)
     else:
         dflt = open(f'{T}/etc/default/grub').read() if os.path.exists(f'{T}/etc/default/grub') else ''
-        dflt = re.sub(r'^GRUB_CMDLINE_LINUX_DEFAULT=.*$', f'GRUB_CMDLINE_LINUX_DEFAULT="quiet splash loglevel=3{" nvidia_drm.modeset=1" if c.get("_nvidia") else ""}"', dflt, flags=re.M)
+        dflt = re.sub(r'^GRUB_CMDLINE_LINUX_DEFAULT=.*$', f'GRUB_CMDLINE_LINUX_DEFAULT="quiet splash loglevel=3 panic=10{" nvidia_drm.modeset=1" if c.get("_nvidia") else ""}"', dflt, flags=re.M)
         dflt = re.sub(r'^GRUB_DISTRIBUTOR=.*$', 'GRUB_DISTRIBUTOR="Toravo OS"', dflt, flags=re.M)
         dflt = re.sub(r'^GRUB_TIMEOUT=.*$', 'GRUB_TIMEOUT=3', dflt, flags=re.M)
         write('/etc/default/grub', dflt)

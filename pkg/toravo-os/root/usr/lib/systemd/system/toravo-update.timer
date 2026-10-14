@@ -1,0 +1,11 @@
+[Unit]
+Description=Toravo Update: background check
+
+[Timer]
+OnBootSec=15min
+OnUnitActiveSec=3h
+RandomizedDelaySec=20min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

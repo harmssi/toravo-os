@@ -7,6 +7,8 @@
 #   PVE_HOST=... scripts/pve-testvm.sh create <iso-name> [uefi|bios] [disk-GB]     Test-VM anlegen + starten → VMID
 #   PVE_HOST=... scripts/pve-testvm.sh shot <vmid> <lokal.png>                       Screenshot (QMP screendump)
 #   PVE_HOST=... scripts/pve-testvm.sh keys <vmid> <taste> [...]                     Tasten (qm sendkey, z. B. ret, tab, meta_l-spc)
+#   PVE_HOST=... scripts/pve-testvm.sh exec <vmid> '<cmd>' [timeout]                  Befehl als root im Gast (qemu-guest-agent)
+#   PVE_HOST=... scripts/pve-testvm.sh boot-disk <vmid> | restart <vmid>             nach der Installation von der Platte starten
 #   PVE_HOST=... scripts/pve-testvm.sh list | destroy <vmid> | destroy-all
 #
 # Variablen: PVE_HOST (Pflicht), DEV_ADDR (Adresse der Build-VM aus Sicht des Proxmox, für fetch-iso), ISO_STORAGE (local),
@@ -62,6 +64,26 @@ PY
     id=${2:?vmid}; shift 2; is_test "$id" || { echo "$id ist keine Test-VM" >&2; exit 1; }
     for k in "$@"; do p "qm sendkey $id $k"; sleep .2; done
     ;;
+  exec)  # exec <vmid> '<shell command>' [timeout-s] – as root in the guest (qemu-guest-agent); prints stdout+stderr, exit code passes through
+    id=${2:?vmid}; c=${3:?command}; to=${4:-600}; is_test "$id" || { echo "$id ist keine Test-VM" >&2; exit 1; }
+    p "qm guest exec $id --timeout $to -- bash -c $(printf '%q' "$c") 2>&1" | python3 -c '
+import json, sys
+raw = sys.stdin.read()
+try:
+    r = json.loads(raw)
+except ValueError:
+    sys.stderr.write(raw); sys.exit(255)
+sys.stdout.write(r.get("out-data", "")); sys.stderr.write(r.get("err-data", ""))
+sys.exit(r.get("exitcode", 255) if r.get("exited") else 124)'
+    ;;
+  boot-disk)  # boot from the virtual disk from now on (after the installation)
+    id=${2:?vmid}; is_test "$id" || { echo "$id ist keine Test-VM" >&2; exit 1; }
+    p "qm set $id --boot order=virtio0 >/dev/null"
+    ;;
+  restart)  # hard stop + start (applies a changed boot order)
+    id=${2:?vmid}; is_test "$id" || { echo "$id ist keine Test-VM" >&2; exit 1; }
+    p "qm stop $id --skiplock 1 >/dev/null 2>&1; qm start $id"
+    ;;
   list)
     p "qm list" | awk -v a="$MIN" -v b="$MAX" 'NR==1 || ($1>=a && $1<=b && $2 ~ /^toravo-test-/)'
     ;;
@@ -74,5 +96,5 @@ PY
         "$0" destroy "$id"
     done
     ;;
-  *) sed -n '2,13p' "$0"; exit 1 ;;
+  *) sed -n '2,15p' "$0"; exit 1 ;;
 esac

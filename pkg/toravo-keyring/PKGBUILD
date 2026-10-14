@@ -1,0 +1,18 @@
+# Toravo OS release signing key for pacman (packages, repo database and update manifests are signed with it).
+# The private key never leaves the release machine; this package only carries the public key.
+pkgname=toravo-keyring
+pkgver=20261014
+pkgrel=1
+pkgdesc="Toravo OS PGP keyring (release signing key for the [toravo] repo and Toravo Update)"
+arch=('any')
+url="https://github.com/harmssi/toravo-os"
+license=('GPL-3.0-or-later')
+makedepends=('gnupg')
+install=toravo-keyring.install
+source=()
+
+package() {
+  install -d "$pkgdir/usr/share/pacman/keyrings"
+  gpg --dearmor < "$startdir/toravo.asc" > "$pkgdir/usr/share/pacman/keyrings/toravo.gpg"
+  install -m644 "$startdir/toravo-trusted" "$startdir/toravo-revoked" "$pkgdir/usr/share/pacman/keyrings/"
+}

@@ -72,10 +72,34 @@ def live():
     out('')
 
 
+def update():
+    """Toravo Update: '⟳ UPDATE' when an update is ready (installed at the next restart); one notification per version."""
+    st = {}
+    try:
+        st = json.load(open('/var/log/toravo-update/state.json'))
+    except (OSError, ValueError):
+        pass
+    s = st.get('status')
+    if s == 'ready' and st.get('available'):
+        a = st['available']
+        notes = (a.get('notes') or {}).get(tr('de', 'en')) or ''
+        mark = os.path.expanduser('~/.local/state/toravo/update-notified')
+        if rd(mark) != str(a.get('version')):
+            subprocess.Popen(['notify-send', '-a', 'Toravo', '-i', '/usr/share/toravo/logo/toravo-t-128.png',
+                              tr('Update bereit – beim nächsten Neustart', 'Update ready – on next restart'), f"Toravo OS {a.get('version')}" + (f' · {notes}' if notes else '')],
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            os.makedirs(os.path.dirname(mark), exist_ok=True)
+            open(mark, 'w').write(str(a.get('version')))
+        return out(tr('⟳ UPDATE', '⟳ UPDATE'), 'ready', tr('Update bereit – wird beim nächsten Neustart installiert', 'Update ready – installed on the next restart') + (f'\n{notes}' if notes else ''))
+    if s == 'rolled_back' and st.get('message'):
+        return out('⟲', 'warn', st['message'])
+    out('')
+
+
 def install():
     out(tr('Toravo OS installieren', 'Install Toravo OS') if os.path.isdir('/run/archiso') else '', 'install',
         tr('Toravo OS auf diesen Rechner installieren', 'Install Toravo OS on this computer'))
 
 
 if __name__ == '__main__':
-    {'gpu': gpu, 'queue': queue, 'live': live, 'install': install}.get(sys.argv[1] if len(sys.argv) > 1 else 'gpu', gpu)()
+    {'gpu': gpu, 'queue': queue, 'live': live, 'install': install, 'update': update}.get(sys.argv[1] if len(sys.argv) > 1 else 'gpu', gpu)()

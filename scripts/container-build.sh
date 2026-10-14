@@ -14,15 +14,21 @@ rm -rf $B/assets && python "$SRC/assets/gen_assets.py" $B/assets
 
 log "Paket toravo-os bauen"
 rm -rf $B/pkgbuild && cp -a "$SRC/pkg/toravo-os" $B/pkgbuild && cp -a $B/assets $B/pkgbuild/generated
+[ -f "$SRC/docs/UPDATES.md" ] && cp "$SRC/docs/UPDATES.md" $B/pkgbuild/generated/
 chown -R builder $B/pkgbuild
 (cd $B/pkgbuild && sudo -u builder makepkg -f --nodeps >$B/makepkg.log 2>&1) || { tail -30 $B/makepkg.log; exit 1; }
 mkdir -p $B/repo && rm -f $B/repo/toravo*
 cp $B/pkgbuild/toravo-os-*.pkg.tar.zst $B/repo/
-repo-add -q $B/repo/toravo.db.tar.gz $B/repo/toravo-os-*.pkg.tar.zst
+rm -rf $B/keyringbuild && cp -a "$SRC/pkg/toravo-keyring" $B/keyringbuild && chown -R builder $B/keyringbuild
+(cd $B/keyringbuild && sudo -u builder makepkg -f --nodeps >$B/makepkg-keyring.log 2>&1) || { tail -30 $B/makepkg-keyring.log; exit 1; }
+cp $B/keyringbuild/toravo-keyring-*.pkg.tar.zst $B/repo/
+repo-add -q $B/repo/toravo.db.tar.gz $B/repo/toravo-os-*.pkg.tar.zst $B/repo/toravo-keyring-*.pkg.tar.zst
 
 log "Profil vorbereiten"
 rm -rf $B/profile && cp -a "$SRC/archiso" $B/profile
 cp $B/assets/syslinux/splash.png $B/profile/syslinux/splash.png
+# Toravo Update: Arch date of this ISO's packages (yesterday, UTC – the Arch Linux Archive has that day complete) -> channel stable
+date -u -d yesterday +%Y/%m/%d > $B/profile/airootfs/etc/toravo/arch-snapshot
 sed -i "s#file:///build/repo#file://$B/repo#" $B/profile/pacman.conf   # local [toravo] repo in this work dir
 OFF=$B/profile/airootfs/opt/toravo/offline-repo
 mkdir -p "$OFF" $B/offline-cache

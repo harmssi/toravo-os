@@ -9,7 +9,7 @@ tooltip label { color: #f2f2f7; padding: 2px 4px; }
 #workspaces button.active { color: #f2f2f7; box-shadow: inset 0 -2px 0 #8a5cf6; }
 #workspaces button:hover { background: #12111c; color: #f2f2f7; }
 #window { color: #6c6a85; font-size: 11px; }
-#custom-gpu, #custom-queue, #custom-live, #custom-install, #pulseaudio, #network, #clock, #custom-power { padding: 0 10px; color: #a9a8bd; }
+#custom-gpu, #custom-queue, #custom-live, #custom-install, #custom-update, #pulseaudio, #network, #clock, #custom-power { padding: 0 10px; color: #a9a8bd; }
 #custom-gpu { font-family: "JetBrains Mono"; font-size: 11px; color: #a9a8bd; }
 #custom-gpu.hot { color: #d8806a; }
 #custom-queue { font-family: "JetBrains Mono"; font-size: 11px; color: #5ab0d0; }
@@ -21,3 +21,6 @@ tooltip label { color: #f2f2f7; padding: 2px 4px; }
 #clock { color: #f2f2f7; font-weight: 600; font-family: "Inter"; padding-right: 8px; }
 #custom-power { padding-right: 16px; color: #6c6a85; }
 #custom-power:hover { color: #d8806a; }
+#custom-update { font-family: "JetBrains Mono"; font-size: 10px; letter-spacing: 2px; font-weight: 700; color: #8a5cf6; }
+#custom-update.ready { color: #ffffff; margin: 5px 4px; padding: 0 12px; border-radius: 8px; border: 1px solid #8a5cf6; background: rgba(138,92,246,0.18); }
+#custom-update.warn { color: #d8806a; }

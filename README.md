@@ -179,6 +179,15 @@ Nichts davon liegt im ISO; Toravo Setup lädt es nach (`~/Toravo/AI`). Lizenzen 
 | NVIDIA-Treiber | proprietär (Kernelmodul open) | |
 | Hyprland | BSD-3 · Waybar MIT · greetd GPL-3 · ReGreet GPL-3 · labwc GPL-2 | |
 
+## Updates (Toravo Update)
+
+Signierte, getestete Updates im Hintergrund, Installation nur beim Neustart, automatischer Rollback – Details (EN): [docs/UPDATES.md](docs/UPDATES.md).
+- Eigenes signiertes Repo `[toravo]` (GitHub Releases `repo-stable` / `repo-rolling`), Schlüssel im Paket `toravo-keyring`.
+- Kanal **stable** = Arch-Pakete auf ein von Toravo getestetes Datum im Arch Linux Archive festgenagelt; **rolling** = immer das Neueste.
+- Laden nur im Leerlauf (keine Render-Jobs, kein Stream, am Netzteil), Installation offline beim nächsten Start (`system-update.target`).
+- Snapshot vor jedem Update (`@rollback` + snap-pac), Boot-Prüfung und Health-Check → automatisch zurück zur vorherigen Version.
+- Seite „Updates“ (Command Bar → Updates): Kanal, Auto an/aus, Jetzt prüfen, „Zurück zur vorherigen Version“, optionale KI-Modell-Updates.
+
 ## Sprache / Language
 
 Alle Toravo-Oberflächen sind zweisprachig: Deutsch bei `de_*`-Locale, sonst Englisch (`toravo.theme.tr()`, Shell: `/usr/lib/toravo/locale.sh`).
@@ -217,8 +226,7 @@ oder eigene Schlüssel per `sbctl`.)
 - Echte Hardware: RTX 4090 – NVIDIA-Treiber offline, CUDA, NVENC, alle KI-Pfade (YuE2, VoxCPM2, LTX, Qwen-Image) **ungetestet**.
 - ComfyUI-Workflows (LTX-Video, Qwen-Image) sind aus den Node-Namen von Hand geschrieben → am ersten echten Lauf prüfen, ggf. per „Save (API)“ ersetzen (`/usr/share/toravo/workflows/`).
 - Studio Local: Veröffentlichen (YouTube/TikTok-OAuth je Nutzer), Szenen-Editor, Wiederaufnahme der Server-Funktionen (Deep-QA, Cast-Check).
-- Eigenes Paket-Repo für Updates von `toravo-os` (jetzt nur im ISO).
-- Secure Boot (signierte Kette), Übersetzung der Oberflächen (aktuell Deutsch).
+- Secure Boot (signierte Kette), weitere Sprachen neben Deutsch/Englisch.
 - Installer: verschlüsselte Installation (LUKS), Windows-Partition verkleinern (bewusst nicht drin – Risiko).
 
 ## Lizenz

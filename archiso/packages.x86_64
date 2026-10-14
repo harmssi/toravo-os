@@ -80,6 +80,7 @@ vpl-gpu-rt
 xf86-video-qxl
 # ---- Toravo desktop
 toravo-os
+toravo-keyring
 hyprland
 hyprlock
 hypridle

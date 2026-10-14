@@ -9,3 +9,5 @@ screenshots/run1/
 screenshots/run2/
 build.local.sh
 screenshots/i18n/
+.release-tested
+screenshots/release-test/

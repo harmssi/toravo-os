@@ -2,6 +2,11 @@
 
 ## Unveröffentlicht (14.10.2026)
 
+- **Toravo Update** (0.1.1): eigenes signiertes Repo `[toravo]` auf GitHub Releases + Paket `toravo-keyring`; Kanäle stable
+  (getestetes Arch-Archive-Datum per signiertem Manifest) und rolling; Download im Leerlauf (Queue leer, kein Stream, Netzteil),
+  Offline-Installation beim Neustart, Snapshot `@rollback` + snap-pac, Kernel/NVIDIA nur gemeinsam, Boot-Prüfung (One-Shot-Eintrag +
+  „vorherige Version“) und Health-Check mit automatischem Rollback, Seite „Updates“, Waybar-Hinweis, optionale KI-Modell-Updates.
+  Release-Werkzeuge `scripts/release.sh`, `release-test.sh` (Wegwerf-VM), Doku `docs/UPDATES.md`.
 - Sprache: alle eigenen Oberflächen zweisprachig (Deutsch für `de_*`, sonst Englisch) – Command Bar, Desktop-Uhr, Toravo Setup,
   Installer (folgt der gewählten Sprache sofort), Studio Local (`<html lang>` vom Server, Texttabelle in `app.js`), Render-Queue,
   Waybar-Tooltips, Power-Menü, labwc-Menü, Greeter-Begrüßung, Benachrichtigungen, `.desktop`-Dateien (`Name[de]`), polkit,

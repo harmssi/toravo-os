@@ -7,7 +7,7 @@
   "margin-top": 0,
   "modules-left": ["custom/logo", "hyprland/workspaces"],
   "modules-center": ["hyprland/window"],
-  "modules-right": ["custom/install", "custom/queue", "custom/gpu", "custom/live", "pulseaudio", "network", "clock", "custom/power"],
+  "modules-right": ["custom/install", "custom/update", "custom/queue", "custom/gpu", "custom/live", "pulseaudio", "network", "clock", "custom/power"],
   "custom/logo": {
     "format": "<span letter_spacing='3000' weight='600'>TORAVO<span foreground='#8a5cf6'>/</span>OS</span>",
     "tooltip-format": "Command Bar öffnen  (Super + Leertaste)",
@@ -16,6 +16,7 @@
   "hyprland/workspaces": { "format": "{id}", "on-click": "activate", "sort-by-number": true },
   "hyprland/window": { "format": "{title}", "max-length": 60, "separate-outputs": true },
   "custom/install": { "exec": "toravo-bar install", "return-type": "json", "interval": "once", "on-click": "toravo-installer", "hide-empty-text": true },
+  "custom/update": { "exec": "toravo-bar update", "return-type": "json", "interval": 60, "on-click": "toravo-updates", "hide-empty-text": true },
   "custom/queue": { "exec": "toravo-bar queue", "return-type": "json", "interval": 3, "on-click": "toravo-studio queue", "hide-empty-text": true },
   "custom/gpu":   { "exec": "toravo-bar gpu",   "return-type": "json", "interval": 3, "on-click": "toravo-studio gpu" },
   "custom/live":  { "exec": "toravo-bar live",  "return-type": "json", "interval": 5, "on-click": "toravo-studio streams", "hide-empty-text": true },

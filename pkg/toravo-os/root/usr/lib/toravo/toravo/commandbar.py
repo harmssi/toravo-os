@@ -43,6 +43,7 @@ ACTIONS = [
     (tr('Render-Queue', 'Render queue'), 'QUEUE', 'queue jobs render warteschlange', lambda: sh('toravo-studio', 'queue')),
     (tr('Toravo Studio öffnen', 'Open Toravo Studio'), 'STUDIO', 'studio app', lambda: sh('toravo-studio')),
     (tr('ComfyUI öffnen', 'Open ComfyUI'), 'COMFYUI', 'comfy comfyui nodes workflow', comfy),
+    ('Updates', 'TORAVO UPDATE', 'update updates aktualisieren upgrade rollback zurück version', lambda: sh('toravo-updates')),
     ('Toravo Setup', tr('KI-WERKZEUGE EINRICHTEN', 'SET UP AI TOOLS'), 'setup treiber driver nvidia cuda modelle models install ki ai', lambda: sh('toravo-setup')),
     ('Terminal', 'KITTY', 'terminal shell konsole', lambda: sh('foot' if theme.software_rendering() else 'kitty')),
     (tr('Dateien', 'Files'), 'THUNAR', 'dateien files ordner folder explorer', lambda: sh('thunar', os.path.expanduser('~/Toravo'))),

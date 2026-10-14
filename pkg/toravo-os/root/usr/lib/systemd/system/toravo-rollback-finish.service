@@ -1,0 +1,13 @@
+[Unit]
+Description=Toravo Update: keep the previous version after an automatic rollback
+ConditionKernelCommandLine=toravo.rollback=1
+After=local-fs.target
+Before=greetd.service display-manager.service toravo-health.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/toravo-update finish-rollback
+
+[Install]
+WantedBy=multi-user.target

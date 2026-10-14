@@ -1,0 +1,19 @@
+[Unit]
+ConditionPathExists=!/run/archiso
+Description=Toravo Update: install the prepared update before the desktop starts
+Documentation=man:systemd.offline-updates(7)
+DefaultDependencies=no
+Requires=sysinit.target
+After=sysinit.target system-update-pre.target local-fs.target
+Before=system-update.target shutdown.target
+Conflicts=shutdown.target
+ConditionPathIsSymbolicLink=/system-update
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/toravo-update apply-offline
+TimeoutStartSec=90min
+StandardOutput=journal+console
+
+[Install]
+WantedBy=system-update.target

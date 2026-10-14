@@ -1,0 +1,12 @@
+[Unit]
+ConditionPathExists=!/run/archiso
+Description=Toravo Update: check and download updates in the background (only when idle)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/toravo-update check --timer
+Nice=15
+IOSchedulingClass=idle
+CPUWeight=20
