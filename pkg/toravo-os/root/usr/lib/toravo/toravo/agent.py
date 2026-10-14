@@ -152,11 +152,44 @@ def clean(plan):
     return {'title': str(plan.get('title', ''))[:80], 'subject': str(plan.get('subject', 'projekt'))[:40] or 'projekt', 'steps': steps}
 
 
+def merge_shorts(p, r):
+    """14.10.2026 (VM test): the local LLM often plans "short 1", "short 2", "short 3" as three steps with count 1 – each job
+    then cut the same strongest moment into the same file (<subject>-short-1.mp4), so 3 Shorts became 1. Merge them into one
+    shorts step; its count comes from the rule planner (the number the user typed) or the sum of the merged steps."""
+    idx = [i for i, s in enumerate(p['steps']) if s['kind'] == 'shorts']
+    if len(idx) < 2:
+        return p
+    want = next((s['params']['count'] for s in r.get('steps', []) if s['kind'] == 'shorts'), None)
+    keep = idx[0]
+    p['steps'][keep]['params']['count'] = max(1, min(10, int(want or sum(p['steps'][i]['params']['count'] for i in idx))))
+    p['steps'][keep]['title'] = f'{p["steps"][keep]["params"]["count"]} Shorts schneiden (9:16 + Untertitel)'
+    drop = set(idx[1:])
+    new_index, n = {}, 0
+    for i in range(len(p['steps'])):
+        if i in drop:
+            new_index[i] = None
+        else:
+            new_index[i] = n; n += 1
+    steps = []
+    for i, s in enumerate(p['steps']):
+        if i in drop:
+            continue
+        after = []
+        for a in s['after']:
+            a2 = new_index.get(keep if a in drop else a)
+            if a2 is not None and a2 not in after and a2 < new_index[i]:
+                after.append(a2)
+        steps.append({**s, 'after': after})
+    p['steps'] = steps
+    return p
+
+
 def harmonize(p, text):
     """LLM plans from small local models get the subject / song dependency wrong now and then – fix with the rule planner."""
     r = rules(text)
     if r['subject'] and r['subject'] != 'projekt':
         p['subject'] = r['subject']
+    merge_shorts(p, r)
     kinds = [s['kind'] for s in p['steps']]
     if 'video' in kinds and 'song' not in kinds and p['subject'] not in existing_songs():
         p['steps'].insert(0, {'kind': 'song', 'title': f'Song „{p["subject"]}“ erzeugen',

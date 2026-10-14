@@ -1,5 +1,14 @@
 # Changelog – Toravo OS
 
+## Unveröffentlicht (14.10.2026)
+
+- Build: `BUILD_MODE=native` in `build.sh` – mkarchiso direkt auf einer Arch-basierten Build-Maschine (ohne Docker);
+  `scripts/container-build.sh` nimmt den Arbeitsordner aus `BUILD_ROOT` (Standard `/build`). Getestet: ISO nativ in einer
+  Toravo-OS-VM gebaut, bootet live bis zum Installer.
+- `scripts/pve-testvm.sh`: Wegwerf-Test-VMs auf Proxmox VE für Boot- und Installer-Tests.
+- Command Bar / Agent: plant das lokale Modell „short 1/2/3“ als drei Einzelschritte, werden sie jetzt zu einem Shorts-Schritt
+  mit der gewünschten Anzahl zusammengefasst (vorher schnitt jeder Job denselben Moment in dieselbe Datei – aus 3 Shorts wurde 1).
+
 ## 0.1.0 – 2026-10-14 (Phase 1+, erstes bootbares ISO)
 
 Ziel (14.10.): „Arch Linux Distro mit Wayland und Hyprland … total cool … unser ganzer KI-Kram integriert wie im Video …

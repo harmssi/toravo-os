@@ -35,6 +35,11 @@ Voraussetzung: ein x86_64-Linux-Host mit Docker (und KVM für die VM-Tests), per
     ./build.sh            # synchronisiert die Quellen, baut Assets → Paket toravo-os → lokales Repo → ISO
     ./build.sh --clean    # dasselbe, danach Container entfernen
 
+Alternativ auf einer **Arch-basierten Build-Maschine** (z. B. einer Arch- oder Toravo-OS-VM mit `archiso`, `git`, `base-devel`)
+ohne Docker: `BUILD_MODE=native BUILD_HOST=root@buildvm BUILD_DIR=/srv/toravo-os-build ./build.sh` – `mkarchiso` läuft direkt als
+root, der pacman-Paket-Cache der Maschine bleibt erhalten (Tipp: `BUILD_DIR` als eigenes btrfs-Subvolume, dann landet der
+Build nicht in den snapper-Snapshots).
+
 Ergebnis: `toravo-os-<datum>-x86_64.iso` im `out/`-Ordner auf dem Build-Host.
 
 Ablauf (`scripts/container-build.sh`):
@@ -44,6 +49,8 @@ Ablauf (`scripts/container-build.sh`):
 4. `mkarchiso` mit dem Profil `archiso/` (abgeleitet von releng).
 
 VM-Test (im Container): `scripts/vmctl.py` (QEMU/KVM headless, QMP-Screenshots, Tasten, Befehle über qemu-guest-agent).
+VM-Test auf einem Proxmox VE: `scripts/pve-testvm.sh` legt Wegwerf-Test-VMs per `qm` an (eigener VMID-Bereich, Tag `toravo-test`,
+`backup=0`, nur die interne Bridge), macht Screenshots/Tasten und löscht sie wieder – nur VMs mit allen drei Merkmalen.
 
 ## Ordner
 
@@ -55,7 +62,7 @@ VM-Test (im Container): `scripts/vmctl.py` (QEMU/KVM headless, QMP-Screenshots, 
       root/usr/share/toravo/        Hyprland-Lua, Waybar, labwc, Greeter, Qt-Palette, skel (Nutzer-Configs), ai-stack.json, workflows/
     assets/gen_assets.py     Bild-Assets aus den Design-Tokens
     brand/                   Trailer-Frames, tokens.css, STYLE.md (Quelle für den Look)
-    scripts/                 container-build.sh, vmctl.py
+    scripts/                 container-build.sh, vmctl.py, pve-testvm.sh
     screenshots/             VM-Screenshots
     docs/TESTING.md          USB-Stick, Booten, Prüfliste
 
