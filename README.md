@@ -204,3 +204,14 @@ oder eigene Schlüssel per `sbctl`.)
 - Eigenes Paket-Repo für Updates von `toravo-os` (jetzt nur im ISO).
 - Secure Boot (signierte Kette), Übersetzung der Oberflächen (aktuell Deutsch).
 - Installer: verschlüsselte Installation (LUKS), Windows-Partition verkleinern (bewusst nicht drin – Risiko).
+
+## Lizenz
+
+Der Code und die Konfiguration in diesem Repository stehen unter der **GNU General Public License v3.0 oder neuer** (siehe `LICENSE`):
+Jeder darf Toravo OS nutzen, verändern und weitergeben – veränderte Versionen müssen ebenfalls offen unter der GPL bleiben.
+Es gibt keine Gewährleistung (Abschnitt 15–16 der Lizenz).
+
+Nicht von dieser Lizenz erfasst:
+- **Name und Logo „Toravo“ / „Toravo OS“** (Wortmarke, „T“-Logo): Forks bitte unter eigenem Namen und Logo veröffentlichen.
+- **Drittsoftware und KI-Modelle**, die Toravo Setup nachlädt (Arch-Linux-Pakete, YuE2, VoxCPM, LTX-Video, Qwen-Image u. a.):
+  Es gelten deren eigene Lizenzen (Tabelle oben). Toravo OS ist „based on Arch Linux“ und steht in keiner Verbindung zum Arch-Linux-Projekt.
