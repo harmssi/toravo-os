@@ -88,9 +88,10 @@ final class APIClient {
 
     func url(_ path: String) -> URL? { URL(string: base + path) }
 
-    private func request(_ path: String, method: String = "GET", body: Encodable? = nil) throws -> URLRequest {
+    private func request(_ path: String, method: String = "GET", body: Encodable? = nil, timeout: TimeInterval? = nil) throws -> URLRequest {
         guard let u = url(path) else { throw APIError.unreachable }
         var r = URLRequest(url: u)
+        if let timeout { r.timeoutInterval = timeout }
         r.httpMethod = method
         r.setValue("application/json", forHTTPHeaderField: "Accept")
         if let token { r.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
@@ -101,8 +102,9 @@ final class APIClient {
         return r
     }
 
-    func call<T: Decodable>(_ path: String, method: String = "GET", body: Encodable? = nil, as: T.Type = T.self) async throws -> T {
-        let r = try request(path, method: method, body: body)
+    func call<T: Decodable>(_ path: String, method: String = "GET", body: Encodable? = nil, timeout: TimeInterval? = nil,
+                            as: T.Type = T.self) async throws -> T {
+        let r = try request(path, method: method, body: body, timeout: timeout)
         let data: Data, resp: URLResponse
         do {
             (data, resp) = try await session.data(for: r)
@@ -127,7 +129,8 @@ final class APIClient {
     func unpair() async throws { let _: [String: Bool] = try await call("/api/v1/unpair", method: "POST") }
     func status() async throws -> Status { try await call("/api/v1/status") }
     func events(since: Int64) async throws -> EventsReply { try await call("/api/v1/events?since=\(since)") }
-    func plan(_ text: String) async throws -> Plan { try await call("/api/v1/plan", method: "POST", body: ["text": text]) }
+    /// The local planner on the PC (a small LLM on the CPU) can take a minute or two.
+    func plan(_ text: String) async throws -> Plan { try await call("/api/v1/plan", method: "POST", body: ["text": text], timeout: 300) }
     func run(planID: String) async throws -> RunReply {
         try await call("/api/v1/plans/\(planID.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? "")/run", method: "POST")
     }

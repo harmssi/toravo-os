@@ -195,6 +195,6 @@ struct LibraryGrid: View {
 struct LibraryView: View {
     var body: some View {
         ScrollView { LibraryGrid(columns: 2).padding(16) }
-            .background(T.bg)
+            .background { ZStack { T.bg; Glow() }.ignoresSafeArea() }
     }
 }

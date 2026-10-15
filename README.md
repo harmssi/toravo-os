@@ -212,6 +212,20 @@ All Toravo apps are bilingual: German for `de_*` locales, English otherwise.
 
   Standardmodell `claude-opus-5-5` (Feld `model` änderbar), strukturierte JSON-Ausgabe, serverseitiger Fallback bei Ablehnung ist aktiv; scheitert der Aufruf, plant der lokale Planer.
 
+## Toravo Companion (iPhone-App)
+
+Native SwiftUI-App für iOS 27 in [`apps/ios/ToravoCompanion`](apps/ios/ToravoCompanion), dazu der Dienst `toravo-companion` auf dem PC
+(Benutzerdienst, Port 8891, **standardmäßig aus**). Details und API (EN): [docs/COMPANION.md](docs/COMPANION.md).
+- Koppeln: Studio Local → **Handy verbinden / Connect phone** zeigt einen QR-Code (Einmal-Code, 10 min). Jedes Handy bekommt einen eigenen,
+  im Studio widerrufbaren Schlüssel. CLI: `toravo-companion pair | devices | revoke <id> | on | off`.
+- Sicherheit: HTTPS mit selbst erzeugtem Zertifikat, die App pinnt den Schlüssel aus dem QR-Code; nur private Netze; Rate-Limits; Livestreams
+  lassen sich vom Handy nicht starten. Keine Cloud, keine Konten, keine Kosten.
+- Funktionen: Render-Queue + GPU live, Command Bar vom Handy (Plan ansehen → am PC starten), Jobs pausieren/abbrechen, fertige Shorts/Videos/
+  Thumbnails ansehen, in Fotos sichern oder teilen. Zugeklappt eine Spalte, aufgeklappt (iPhone Duo) Queue links, Vorschau rechts.
+- Ehrlich: Mitteilungen kommen sofort nur, solange die App offen ist (im Hintergrund entscheidet iOS); echtes Push bräuchte einen Apple-Schlüssel,
+  der nicht in eine Distribution gehört. Noch nicht im App Store / TestFlight; getestet im Xcode-27.1-Simulator (iPhone Duo), nicht auf echter Hardware.
+- Bauen: `brew install xcodegen && cd apps/ios/ToravoCompanion && xcodegen generate`, dann in Xcode eigenes Team setzen (nicht committen).
+
 ## Studio Local vs. Toravo Studio (Server)
 
 Das bestehende Toravo-Studio ist an unsere eigene Server- und Konten-Infrastruktur gebunden und wird **nicht** ins Image übernommen; **Studio Local** ist eine eigenständige Neuentwicklung nach denselben Ideen, ohne Server, Konten oder Schlüssel.

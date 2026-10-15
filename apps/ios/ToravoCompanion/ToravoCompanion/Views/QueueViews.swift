@@ -42,7 +42,7 @@ struct CommandBar: View {
                     Image(systemName: "sparkle").foregroundStyle(T.violet)
                     TextField("", text: $model.command, prompt: Text("turn skyborne into a music video + 3 shorts").foregroundStyle(T.text3), axis: .vertical)
                         .font(.system(size: 16)).foregroundStyle(T.text).lineLimit(1...3)
-                        .focused($focused).submitLabel(.go).accessibilityIdentifier("commandField")
+                        .focused($focused).submitLabel(.go).autocorrectionDisabled().textInputAutocapitalization(.never).accessibilityIdentifier("commandField")
                         .onSubmit { Task { await model.makePlan() } }
                     if model.planning { ProgressView().tint(T.violet) } else if !model.command.isEmpty {
                         Button { focused = false; Task { await model.makePlan() } } label: {
@@ -52,8 +52,11 @@ struct CommandBar: View {
                 }
                 .padding(12).background(T.bg2, in: RoundedRectangle(cornerRadius: 10))
                 .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(focused ? T.violet : T.line))
+                if model.planning {
+                    Text("Your PC is planning with its local AI – this can take a minute.").font(.system(size: 12)).foregroundStyle(T.text3)
+                }
                 if let p = model.plan { PlanView(plan: p) }
-                if let e = model.lastError, model.link == .online { Text(e).font(.system(size: 12)).foregroundStyle(T.coral) }
+                if let e = model.lastError { Text(e).font(.system(size: 12)).foregroundStyle(T.coral) }
             }
         }
     }

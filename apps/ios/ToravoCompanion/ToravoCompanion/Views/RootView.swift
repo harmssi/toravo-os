@@ -87,7 +87,7 @@ struct CompactLayout: View {
                     }.padding(.horizontal, 16).padding(.bottom, 24)
                 }
                 .scrollContentBackground(.hidden)
-                .background(Color.clear)
+                .background { ZStack { T.bg; Glow() }.ignoresSafeArea() }
                 .refreshable { await model.refresh() }
                 .navigationDestination(for: String.self) { id in JobDetail(jobID: id) }
                 .toolbar(.hidden, for: .navigationBar)
@@ -122,6 +122,7 @@ struct SplitLayout: View {
                 }
                 .refreshable { await model.refresh() }
                 .frame(width: g.size.width * 0.48)
+                .background { ZStack { T.bg; Glow() }.ignoresSafeArea() }
                 Rectangle().fill(T.line).frame(width: 1).ignoresSafeArea(edges: .bottom)
                 PreviewPane().frame(maxWidth: .infinity)
             }
