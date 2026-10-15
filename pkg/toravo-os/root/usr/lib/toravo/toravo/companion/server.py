@@ -463,7 +463,7 @@ class H(BaseHTTPRequestHandler):
             raise ApiError(403, 'forbidden_network')
         raw = self.read_body() if self.command == 'POST' else b''
         u = urllib.parse.urlparse(self.path)
-        p, q = u.path, urllib.parse.parse_qs(u.query)
+        p, q = urllib.parse.unquote(u.path), urllib.parse.parse_qs(u.query)  # 15.10.2026: clients may percent-encode "-" in ids
         m, S = self.command, self.server
         if m == 'HEAD' and not p.startswith('/api/v1/media/'):
             m = 'GET'

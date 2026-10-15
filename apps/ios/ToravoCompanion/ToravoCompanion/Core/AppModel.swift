@@ -23,6 +23,7 @@ final class AppModel: ObservableObject {
     @Published var plan: Plan?
     @Published var planning = false
     @Published var starting = false
+    @Published var planError: String?       // survives the status refresh (lastError is cleared on every good poll)
 
     private(set) var client: APIClient?
     private var loop: Task<Void, Never>?
@@ -179,8 +180,9 @@ final class AppModel: ObservableObject {
         guard !text.isEmpty, let c = client else { return }
         planning = true
         defer { planning = false }
+        planError = nil
         do { withAnimation { plan = nil }; let p = try await c.plan(text); withAnimation(.spring(duration: 0.35)) { plan = p } }
-        catch { lastError = (error as? LocalizedError)?.errorDescription }
+        catch { planError = (error as? LocalizedError)?.errorDescription }
     }
 
     func runPlan() async {
@@ -189,10 +191,10 @@ final class AppModel: ObservableObject {
         defer { starting = false }
         do {
             let r = try await c.run(planID: p.plan_id)
-            withAnimation { plan = nil; command = "" }
+            withAnimation { plan = nil; command = ""; planError = nil }
             selectedJobID = r.jobs.first
             await refresh()
-        } catch { lastError = (error as? LocalizedError)?.errorDescription }
+        } catch { planError = (error as? LocalizedError)?.errorDescription }
     }
 
     func act(_ job: Job, _ action: String) async {

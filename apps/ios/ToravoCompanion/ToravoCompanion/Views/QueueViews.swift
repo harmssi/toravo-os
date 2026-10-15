@@ -56,7 +56,7 @@ struct CommandBar: View {
                     Text("Your PC is planning with its local AI – this can take a minute.").font(.system(size: 12)).foregroundStyle(T.text3)
                 }
                 if let p = model.plan { PlanView(plan: p) }
-                if let e = model.lastError { Text(e).font(.system(size: 12)).foregroundStyle(T.coral) }
+                if let e = model.planError ?? model.lastError { Text(e).font(.system(size: 12)).foregroundStyle(T.coral) }
             }
         }
     }

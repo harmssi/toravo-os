@@ -161,7 +161,7 @@ struct LibraryGrid: View {
     @State private var kind = "all"
     @State private var open: Media?
 
-    var items: [Media] { model.media.filter { kind == "all" || $0.kind == kind } }
+    var items: [Media] { model.media.filter { kind == "all" ? $0.kind != "song" : $0.kind == kind } }   // songs + stems live in the Studio
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {

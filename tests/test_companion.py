@@ -309,6 +309,17 @@ def test_plan_only_by_id_and_once(srv, tok, files):
         os.remove(queue._path(j['id']))
 
 
+def test_plan_id_percent_encoded(srv, tok, files):
+    """15.10.2026: the app encoded '-' as %2D -> 404, the start button did nothing. Encoded ids must work too."""
+    for _ in range(6):
+        st, p, _, _ = req(srv, 'POST', '/api/v1/plan', {'text': '2 shorts from skyborne'}, token=tok)
+        if '-' in p['plan_id'] or '_' in p['plan_id']:
+            break
+    enc = p['plan_id'].replace('-', '%2D').replace('_', '%5F')
+    st, js, _, _ = req(srv, 'POST', f'/api/v1/plans/{enc}/run', token=tok)
+    assert st == 200 and js['jobs']
+
+
 def test_plan_needs_text(srv, tok):
     assert req(srv, 'POST', '/api/v1/plan', {'text': '  '}, token=tok)[0] == 400
 

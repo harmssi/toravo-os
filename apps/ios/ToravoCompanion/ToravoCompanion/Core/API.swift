@@ -81,6 +81,9 @@ final class APIClient {
         downloads.invalidateAndCancel()
     }
 
+    /// ids are base64url / hex: keep '-' and '_' literal (15.10.2026: "%2D" made the PC answer 404 for plan ids with a dash)
+    static let idChars = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_"))
+
     var base: String {
         let h = host.contains(":") && !host.hasPrefix("[") ? "[\(host)]" : host
         return "https://\(h):\(port)"
@@ -132,10 +135,10 @@ final class APIClient {
     /// The local planner on the PC (a small LLM on the CPU) can take a minute or two.
     func plan(_ text: String) async throws -> Plan { try await call("/api/v1/plan", method: "POST", body: ["text": text], timeout: 300) }
     func run(planID: String) async throws -> RunReply {
-        try await call("/api/v1/plans/\(planID.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? "")/run", method: "POST")
+        try await call("/api/v1/plans/\(planID.addingPercentEncoding(withAllowedCharacters: APIClient.idChars) ?? "")/run", method: "POST")
     }
     func job(_ id: String, _ action: String) async throws -> JobReply {
-        try await call("/api/v1/jobs/\(id.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? "")/\(action)", method: "POST")
+        try await call("/api/v1/jobs/\(id.addingPercentEncoding(withAllowedCharacters: APIClient.idChars) ?? "")/\(action)", method: "POST")
     }
     func media(kind: String = "all", limit: Int = 60) async throws -> [Media] {
         let r: MediaReply = try await call("/api/v1/media?kind=\(kind)&limit=\(limit)")
