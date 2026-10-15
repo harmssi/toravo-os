@@ -1,6 +1,6 @@
 # Toravo OS desktop, apps and branding (Command Bar, Setup, Installer, Studio Local, themes, Plymouth).
 pkgname=toravo-os
-pkgver=0.1.5
+pkgver=0.1.6
 pkgrel=1
 pkgdesc="Toravo OS – The AI Content Creator OS: Hyprland desktop, Command Bar, Toravo Setup, Studio Local, Installer"
 arch=('any')
