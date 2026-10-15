@@ -117,4 +117,12 @@ x "sudo -u tester PYTHONPATH=/usr/lib/toravo python3 -c 'import toravo.commandba
    || { log "Command Bar / Agent kaputt"; exit 1; }
 x "sudo -u tester XDG_RUNTIME_DIR=/run/user/\$(id -u tester) systemctl --user start toravo-studio.service; sleep 3; curl -sf http://127.0.0.1:8890/api/ping" 120 \
    || { log "Studio Local antwortet nicht"; exit 1; }
+# 15.10.2026: Toravo Companion – service starts, pairing code works over HTTPS, token reaches /status, service off again
+x "command -v toravo-companion >/dev/null || exit 0; U=\$(id -u tester); E=\"XDG_RUNTIME_DIR=/run/user/\$U\";
+   sudo -u tester env \$E systemctl --user start toravo-companion.service; sleep 3;
+   C=\$(sudo -u tester env \$E toravo-companion pair --host 127.0.0.1 | sed -n 's/.*[?&]c=\([A-Z0-9]*\).*/\1/p' | head -1);
+   T=\$(curl -sk -X POST https://127.0.0.1:8891/api/v1/pair -H 'Content-Type: application/json' -d '{\"code\":\"'\$C'\",\"device\":\"release-test\",\"model\":\"vm\"}' \
+        | python3 -c 'import json,sys; print(json.load(sys.stdin)[\"token\"])');
+   curl -skf https://127.0.0.1:8891/api/v1/status -H \"Authorization: Bearer \$T\" | python3 -c 'import json,sys; assert \"jobs\" in json.load(sys.stdin)';
+   r=\$?; sudo -u tester env \$E toravo-companion off >/dev/null 2>&1; exit \$r" 180 || { log "Companion-Dienst kaputt"; exit 1; }
 log "BESTANDEN: $VER ($EXPECT)"
