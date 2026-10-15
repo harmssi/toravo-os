@@ -48,6 +48,13 @@ final class PinTests: XCTestCase {
     }
 }
 
+final class EncodingTests: XCTestCase {
+    func testIdsKeepDashAndUnderscore() {   // 15.10.2026: "%2D" in plan ids made the PC answer 404
+        XCTAssertEqual("EK-Kl_z9".addingPercentEncoding(withAllowedCharacters: APIClient.idChars), "EK-Kl_z9")
+        XCTAssertEqual("a/b?c".addingPercentEncoding(withAllowedCharacters: APIClient.idChars), "a%2Fb%3Fc")
+    }
+}
+
 final class LayoutTests: XCTestCase {
     func testFoldedIsOneColumnUnfoldedIsTwo() {
         XCTAssertEqual(LayoutMode.forWidth(466), .single)   // iPhone Duo outer display (simulator: 1398 px @3x)
