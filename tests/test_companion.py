@@ -133,7 +133,7 @@ def test_public_ip_gets_403(srv, tok, monkeypatch):
 def test_pairing_code_single_use_and_token(srv):
     code, exp = store.new_code()
     assert len(code) == 10 and all(c in store.ALPHABET for c in code) and exp - time.time() <= 600
-    st, js, _, _ = req(srv, 'POST', '/api/v1/pair', {'code': code.lower(), 'device': 'Tobias iPhone', 'model': 'iPhone17,2'})
+    st, js, _, _ = req(srv, 'POST', '/api/v1/pair', {'code': code.lower(), 'device': 'Alex iPhone', 'model': 'iPhone17,2'})
     assert st == 200 and js['token'] and js['device_id'] and js['server']['id'] == srv.ident['id']
     st2, js2, _, _ = req(srv, 'POST', '/api/v1/pair', {'code': code, 'device': 'x'})
     assert st2 == 400 and js2['error'] == 'bad_code'
