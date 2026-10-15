@@ -222,11 +222,14 @@ final class AppModel: ObservableObject {
 }
 
 enum Notify {
+    /// Recordings / UI tests: `-TORAVO_MUTE YES` → no sound at all (players muted, silent notifications).
+    static var muted: Bool { UserDefaults.standard.bool(forKey: "TORAVO_MUTE") }
+
     static func post(title: String, body: String, id: String) {
         let c = UNMutableNotificationContent()
         c.title = title
         c.body = body
-        c.sound = .default
+        c.sound = muted ? nil : .default
         UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: "toravo-\(id)", content: c, trigger: nil))
     }
 }

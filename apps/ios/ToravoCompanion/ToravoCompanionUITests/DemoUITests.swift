@@ -10,7 +10,7 @@ final class DemoUITests: XCTestCase {
 
     func app() -> XCUIApplication {
         let a = XCUIApplication()
-        a.launchArguments += ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        a.launchArguments += ["-AppleLanguages", "(en)", "-AppleLocale", "en_US", "-TORAVO_MUTE", "YES"]
         return a
     }
 
@@ -80,7 +80,11 @@ final class DemoUITests: XCTestCase {
                 pause(3)
             }
         }
-        XCTAssertTrue(a.staticTexts["JUST FINISHED"].waitForExistence(timeout: wait("DEMO_WAIT") > 0 ? wait("DEMO_WAIT") : 1800))
+        let total = wait("DEMO_WAIT") > 0 ? wait("DEMO_WAIT") : 1800
+        let doneKind = env["DEMO_DONE_KIND"] ?? "shorts"   // wait for this job (the music video finishes first, the Shorts last)
+        XCTAssertTrue(a.descendants(matching: .any).matching(NSPredicate(format: "identifier == %@", "job-\(doneKind)-done")).firstMatch
+            .waitForExistence(timeout: total))
+        XCTAssertTrue(a.staticTexts["JUST FINISHED"].waitForExistence(timeout: 30))
         pause(3)
         let m = a.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'media-'")).firstMatch
         m.tap()

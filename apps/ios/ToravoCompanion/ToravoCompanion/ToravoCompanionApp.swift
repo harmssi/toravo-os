@@ -40,6 +40,6 @@ struct ToravoCompanionApp: App {
 /// Show "Done: …" also while the app is open.
 final class ForegroundNotifications: NSObject, UNUserNotificationCenterDelegate {
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
-        [.banner, .sound, .list]
+        Notify.muted ? [.banner, .list] : [.banner, .sound, .list]
     }
 }

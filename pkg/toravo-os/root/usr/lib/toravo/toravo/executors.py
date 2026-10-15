@@ -555,6 +555,11 @@ def pick_windows(vals, length, count):
             picks.append(i)
         if len(picks) >= count:
             break
+    if len(picks) < count and len(sums) > 1:  # 15.10.2026: greedy left gaps too small for one more cut (asked 3, got 2) -> spread evenly
+        step = (len(sums) - 1) / max(1, count - 1)
+        even = [round(k * step) for k in range(count)]
+        if all(b - a >= L for a, b in zip(even, even[1:])):
+            picks = even
     return sorted(picks)
 
 

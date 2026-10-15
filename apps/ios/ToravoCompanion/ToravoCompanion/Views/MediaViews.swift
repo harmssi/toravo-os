@@ -121,6 +121,7 @@ struct LoopingPlayer: View {
         VideoPlayer(player: player)
             .onAppear {
                 let p = AVQueuePlayer()
+                p.isMuted = Notify.muted
                 looper = AVPlayerLooper(player: p, templateItem: AVPlayerItem(url: url))
                 player = p
                 p.play()
