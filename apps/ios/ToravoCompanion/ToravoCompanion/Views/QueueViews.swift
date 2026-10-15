@@ -53,7 +53,7 @@ struct CommandBar: View {
                 .padding(12).background(T.bg2, in: RoundedRectangle(cornerRadius: 10))
                 .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(focused ? T.violet : T.line))
                 if model.planning {
-                    Text("Your PC is planning with its local AI – this can take a minute.").font(.system(size: 12)).foregroundStyle(T.text3)
+                    Text("Your PC is making a plan – with a local AI model this can take a minute.").font(.system(size: 12)).foregroundStyle(T.text3)
                 }
                 if let p = model.plan { PlanView(plan: p) }
                 if let e = model.planError ?? model.lastError { Text(e).font(.system(size: 12)).foregroundStyle(T.coral) }
