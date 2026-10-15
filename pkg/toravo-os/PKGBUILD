@@ -10,8 +10,9 @@ depends=(hyprland hyprlock hypridle hyprpolkitagent waybar mako fuzzel kitty foo
          adw-gtk-theme papirus-icon-theme qt6ct gtk4-layer-shell python python-gobject python-cairo python-pillow python-psutil
          webkitgtk-6.0 libnotify inter-font ttf-jetbrains-mono ttf-nerd-fonts-symbols ffmpeg uv grim slurp wl-clipboard
          xdg-user-dirs networkmanager snapper snap-pac btrfs-progs zram-generator mesa-utils parted gptfdisk rsync arch-install-scripts
-         toravo-keyring gnupg)
-optdepends=('obs-studio: Streams' 'ollama: lokaler Command-Bar-Agent')
+         toravo-keyring gnupg qrencode)
+optdepends=('obs-studio: Streams' 'ollama: lokaler Command-Bar-Agent'
+            'avahi: Toravo Companion – iPhone-App findet den PC per Bonjour wieder, wenn sich seine IP ändert (avahi-daemon)')
 source=()
 
 package() {

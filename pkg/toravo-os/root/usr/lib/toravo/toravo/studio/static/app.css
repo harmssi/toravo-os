@@ -38,10 +38,24 @@ canvas.wave{width:100%;height:64px;display:block}
 .vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}.vgrid.v916 video{aspect-ratio:9/16;object-fit:cover}
 .thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}.thumbs img{width:100%;border-radius:10px;border:1px solid var(--line)}
 .state{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase}.st-needs_approval{color:var(--coral)}.st-approved{color:var(--green)}.st-ready{color:var(--cyan)}
-.st-running{color:var(--cyan)}.st-failed{color:var(--red)}.st-needs_tool{color:var(--coral)}.st-done{color:var(--green)}.st-queued{color:var(--text3)}
+.st-running{color:var(--cyan)}.st-paused{color:var(--text2)}.st-failed{color:var(--red)}.st-needs_tool{color:var(--coral)}.st-done{color:var(--green)}.st-queued{color:var(--text3)}
 .cal{display:grid;grid-template-columns:110px 70px 1fr 120px 150px auto;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid rgba(36,33,58,.5)}
 .planbox{position:fixed;top:64px;right:22px;width:520px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:0 30px 90px rgba(0,0,0,.6);z-index:9}
 .planbox .step{display:flex;gap:10px;align-items:center;padding:7px 0}.planbox .ic{color:var(--violet);width:18px;text-align:center}.hidden{display:none}
 .tool{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(36,33,58,.5)}
 .empty{color:var(--text3);padding:14px 0}
 .hero{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px}
+/* 15.10.2026: Connect phone (Toravo Companion) */
+.phonebtn{white-space:nowrap}.phonebtn::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--text3)}.phonebtn.on::before{background:var(--green);box-shadow:0 0 6px var(--green)}
+.modal{position:fixed;inset:0;background:rgba(7,7,13,.78);display:flex;align-items:flex-start;justify-content:center;padding-top:9vh;z-index:20}.modal.hidden{display:none}
+.mcard{width:760px;max-width:calc(100vw - 40px);background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px 24px;box-shadow:0 30px 90px rgba(0,0,0,.6),0 0 120px rgba(73,49,127,.35)}
+.mcard h2{font-size:28px;font-weight:800;letter-spacing:-.02em;margin:6px 0 14px}
+.pair{display:grid;grid-template-columns:236px 1fr;gap:24px;align-items:start}
+.qr{width:236px;height:236px;background:#fff;border-radius:14px;padding:8px;display:flex;align-items:center;justify-content:center}.qr svg{width:220px;height:220px;display:block}
+.qr.none{background:var(--bg2);border:1px dashed var(--line);color:var(--text3);font-size:12px;text-align:center;padding:18px}
+.code{font-family:var(--mono);font-size:34px;font-weight:600;letter-spacing:.12em;margin:4px 0 2px;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.steps{margin:0 0 12px;padding-left:18px;color:var(--text2);line-height:1.6}.note{color:var(--text3);font-size:12px;line-height:1.5;margin-top:10px}
+.devs{margin-top:18px;border-top:1px solid var(--line);padding-top:12px}.devs .tool .n{display:flex;flex-direction:column}
+.mfoot{display:flex;gap:8px;margin-top:18px;align-items:center}.mfoot .sp{flex:1}.ok{color:var(--green)}
+.linkbox{font-family:var(--mono);font-size:11px;color:var(--text3);word-break:break-all;margin-top:8px}
+@media (max-width:1600px){.cmd{min-width:280px}}

@@ -9,9 +9,9 @@ const api = async (p, body) => {
 const LANG = document.documentElement.lang === 'de' ? 'de' : 'en';
 const t = (de, en) => LANG === 'de' ? de : en;
 const KIND = {song: 'YuE2', voice: 'VoxCPM', video: 'LTX · ComfyUI', shorts: 'auto-edit', thumbnail: 'Qwen-Image', stems: 'Demucs', master: 'Matchering', transcribe: 'Whisper'};
-const STATE = LANG === 'de' ? {queued: 'wartet', running: 'läuft', done: 'fertig', failed: 'Fehler', needs_tool: 'Werkzeug fehlt', cancelled: 'abgebrochen',
+const STATE = LANG === 'de' ? {queued: 'wartet', paused: 'pausiert', running: 'läuft', done: 'fertig', failed: 'Fehler', needs_tool: 'Werkzeug fehlt', cancelled: 'abgebrochen',
   needs_approval: 'NEEDS APPROVAL', approved: 'freigegeben', ready: 'bereitgelegt'} :
-  {queued: 'waiting', running: 'running', done: 'done', failed: 'error', needs_tool: 'tool missing', cancelled: 'cancelled',
+  {queued: 'waiting', paused: 'paused', running: 'running', done: 'done', failed: 'error', needs_tool: 'tool missing', cancelled: 'cancelled',
   needs_approval: 'NEEDS APPROVAL', approved: 'approved', ready: 'prepared'};
 let timer = null;
 
@@ -20,7 +20,7 @@ function panel(title, right, inner, cls = '') {
 }
 
 function queueRows(jobs, limit = 8) {
-  const act = jobs.filter(j => ['running', 'queued', 'needs_tool', 'failed'].includes(j.state)).slice(0, limit);
+  const act = jobs.filter(j => ['running', 'queued', 'paused', 'needs_tool', 'failed'].includes(j.state)).slice(0, limit);
   if (!act.length) return `<div class="empty">${t('Keine Jobs. Sag oben einfach, was du willst.', 'No jobs. Just say what you want up top.')}</div>`;
   return act.map(j => `<div class="q"><span class="small">${esc(j.title)}</span><span class="chip">${esc(KIND[j.kind] || j.kind)}</span>
     <div><div class="bar"><i style="width:${Math.round((j.progress || 0) * 100)}%"></i></div><div class="mono dim small" style="margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(j.error || j.step || '')}</div></div>
@@ -173,7 +173,8 @@ async function pageQueue() {
     <span class="chip">${esc(KIND[j.kind] || j.kind)}</span><div><div class="bar"><i style="width:${Math.round((j.progress || 0) * 100)}%"></i></div>
     <div class="mono dim small" style="margin-top:4px">${esc(j.error || j.step || '')}</div><div class="mono small">${(j.outputs || []).map(o => esc(o.split('/').pop())).join(' · ')}</div></div>
     <span class="state st-${j.state}">${esc(STATE[j.state] || j.state)}</span>
-    <span>${['queued', 'running'].includes(j.state) ? `<button class="btn sm" onclick="jobAct('${j.id}','cancel')">${t('Abbrechen', 'Cancel')}</button>` : `<button class="btn sm" onclick="jobAct('${j.id}','retry')">${t('Nochmal', 'Retry')}</button> <button class="btn sm danger" onclick="jobAct('${j.id}','delete')">✕</button>`}</span></div>`).join('');
+    <span>${j.state === 'paused' ? `<button class="btn sm primary" onclick="jobAct('${j.id}','retry')" title="${t('Pausiert (über die Handy-App)', 'Paused (from the phone app)')}">${t('Fortsetzen', 'Resume')}</button> <button class="btn sm" onclick="jobAct('${j.id}','cancel')">${t('Abbrechen', 'Cancel')}</button>` :
+      ['queued', 'running'].includes(j.state) ? `<button class="btn sm" onclick="jobAct('${j.id}','cancel')">${t('Abbrechen', 'Cancel')}</button>` : `<button class="btn sm" onclick="jobAct('${j.id}','retry')">${t('Nochmal', 'Retry')}</button> <button class="btn sm danger" onclick="jobAct('${j.id}','delete')">✕</button>`}</span></div>`).join('');
   $('#main').innerHTML = `<span class="label v">${t('Render-Queue', 'Render queue')}</span><h1>Queue.</h1>${panel(t('Alle Jobs', 'All jobs'), `${jobs.length}`, rows || `<div class="empty">${t('Leer.', 'Empty.')}</div>`)}`;
 }
 
@@ -201,6 +202,59 @@ $('#cmd').onsubmit = async e => {
   $('#p_x').onclick = () => box.classList.add('hidden');
   $('#p_run').onclick = async () => { await api('/api/plan/run', {plan: p}); box.classList.add('hidden'); $('#cmdin').value = ''; location.hash = 'queue'; };
 };
+
+// 15.10.2026: Connect phone – the "Toravo Companion" iPhone app pairs via QR code / one-time code; phones can be removed here.
+let phoneTimer = null, phonePair = null, phoneKnown = null;
+async function phoneOpen() {
+  const box = $('#phonebox'); box.classList.remove('hidden');
+  box.innerHTML = `<div class="mcard"><span class="label v">Toravo Companion</span><div class="empty">${t('Code wird erstellt …', 'Creating a code …')}</div></div>`;
+  phonePair = await api('/api/companion/pair', {});
+  phoneKnown = null;
+  await phoneRender();
+  clearInterval(phoneTimer);
+  phoneTimer = setInterval(phoneRender, 2000);
+}
+function phoneClose() { clearInterval(phoneTimer); phoneTimer = null; phonePair = null; $('#phonebox').classList.add('hidden'); phoneBtn(); }
+async function phoneRender() {
+  const st = await api('/api/companion');
+  const box = $('#phonebox'); if (box.classList.contains('hidden')) return;
+  const ids = st.devices.map(d => d.id);
+  const fresh = phoneKnown ? st.devices.filter(d => !phoneKnown.includes(d.id)) : [];
+  if (!phoneKnown) phoneKnown = ids;
+  if (fresh.length) { phonePair = null; phoneKnown = ids; box.dataset.fresh = fresh.map(d => d.name).join(', '); }
+  const left = phonePair ? Math.max(0, Math.round(phonePair.expires - Date.now() / 1000)) : 0;
+  const mmss = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
+  const qr = phonePair && phonePair.svg && left ? `<div class="qr">${phonePair.svg.replace(/<\?xml[^>]*>/, '').replace(/<!--[\s\S]*?-->/g, '')}</div>` :
+    `<div class="qr none">${phonePair && left ? t('QR-Code nicht verfügbar (qrencode fehlt) – Code oder Link eingeben.', 'QR code not available (qrencode missing) – type the code or use the link.') : box.dataset.fresh ? `<span class="ok" style="font-size:40px">✓</span>` : t('Kein offener Code.', 'No open code.')}</div>`;
+  const right = !st.on && !phonePair ? `<h2>${t('Handy-Zugriff ist aus.', 'Phone access is off.')}</h2><div class="small dim">${t('Keine App kann gerade auf diesen PC zugreifen.', 'No app can reach this PC right now.')}</div>` :
+    box.dataset.fresh && !phonePair ? `<h2>${t('Verbunden.', 'Connected.')}</h2><div class="ok">✓ ${esc(box.dataset.fresh)}</div><div class="note">${t('Die App zeigt jetzt Queue, GPU und deine Dateien. Fertige Jobs melden sich, solange die App offen ist.', 'The app now shows the queue, GPU and your files. Finished jobs notify you while the app is open.')}</div>` :
+    `<h2>${t('Handy verbinden.', 'Connect your phone.')}</h2>
+     <ol class="steps"><li>${t('App „Toravo Companion“ auf dem iPhone öffnen.', 'Open the “Toravo Companion” app on your iPhone.')}</li>
+     <li>${t('QR-Code scannen – oder den Code eintippen:', 'Scan the QR code – or type the code:')}</li></ol>
+     <div class="code">${esc(phonePair ? phonePair.code : '')}</div>
+     <div class="mono small ${left ? 'dim' : 'st-failed'}">${left ? t(`gültig noch ${mmss} · nur einmal`, `valid for ${mmss} · single use`) : t('abgelaufen', 'expired')}</div>
+     ${phonePair && !phonePair.svg ? `<div class="linkbox">${esc(phonePair.link)}</div>` : ''}
+     <div class="note">${t('Funktioniert nur im selben WLAN/Netzwerk wie dieser PC – keine Cloud, kein Konto. Die Verbindung ist verschlüsselt; die App prüft den Schlüssel dieses PCs (steckt im QR-Code). Benachrichtigungen kommen, solange die App offen ist oder iOS sie im Hintergrund aktualisieren lässt – kein Sofort-Push.',
+       'Works only in the same Wi-Fi/network as this PC – no cloud, no account. The connection is encrypted; the app checks this PC’s key (it is in the QR code). Notifications arrive while the app is open or when iOS lets it refresh in the background – no instant push.')}</div>
+     ${st.hosts.length ? '' : `<div class="note st-needs_tool">${t('Keine Netzwerk-Adresse gefunden – ist der PC im WLAN/LAN?', 'No network address found – is this PC on Wi-Fi/LAN?')}</div>`}
+     ${phonePair && phonePair.message ? `<div class="note st-failed">${esc(phonePair.message)}</div>` : ''}`;
+  const devs = st.devices.length ? st.devices.map(d => `<div class="tool"><span class="n"><span>${esc(d.name)} <span class="dim small">· ${esc(d.model || '')}</span></span>
+      <span class="mono dim small">${t('zuletzt', 'last seen')} ${d.last_seen ? new Date(d.last_seen * 1000).toLocaleString().slice(0, 17) : '–'}</span></span>
+      <button class="btn sm danger" onclick="phoneRevoke('${esc(d.id)}')">${t('Entfernen', 'Remove')}</button></div>`).join('') :
+    `<div class="empty">${t('Noch kein Handy gekoppelt.', 'No phone paired yet.')}</div>`;
+  box.innerHTML = `<div class="mcard"><div class="phead"><span class="label v">Toravo Companion · ${t('lokal', 'local')}</span><span class="label ${st.on ? 'c' : ''}">${st.on ? t('Handy-Zugriff an', 'Phone access on') + ' · :' + st.port : t('aus', 'off')}</span></div>
+    <div class="pair">${qr}<div>${right}</div></div>
+    <div class="devs"><span class="label">${t('Gekoppelte Handys', 'Paired phones')} · ${st.devices.length}/10</span>${devs}</div>
+    <div class="mfoot"><button class="btn primary" onclick="phoneOpen()">${st.on ? t('Neuer Code', 'New code') : t('Einschalten + Code', 'Turn on + code')}</button>
+      ${st.on ? `<button class="btn danger" onclick="phoneOff()">${t('Handy-Zugriff aus', 'Turn off phone access')}</button>` : ''}<span class="sp"></span>
+      <button class="btn" onclick="phoneClose()">${t('Schließen', 'Close')}</button></div></div>`;
+}
+async function phoneRevoke(id) { await api(`/api/companion/devices/${id}/revoke`, {}); phoneKnown = null; phoneRender(); }
+async function phoneOff() { await api('/api/companion/off', {}); phonePair = null; delete $('#phonebox').dataset.fresh; phoneRender(); phoneBtn(); }
+async function phoneBtn() { try { const st = await api('/api/companion'); $('#phonebtn').classList.toggle('on', st.on); } catch (e) { /* older server */ } }
+$('#phonebtn').onclick = () => { delete $('#phonebox').dataset.fresh; phoneOpen(); };
+$('#phonebox').onclick = e => { if (e.target.id === 'phonebox') phoneClose(); };
+phoneBtn();
 
 // static texts in index.html (German in the file, English via data-en)
 if (LANG !== 'de') document.querySelectorAll('[data-en]').forEach(el => { el.textContent = el.dataset.en; });

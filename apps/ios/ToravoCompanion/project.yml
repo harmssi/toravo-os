@@ -1,0 +1,72 @@
+# Toravo Companion – iPhone app for Toravo OS (15.10.2026). Generate the Xcode project with `xcodegen` (brew install xcodegen).
+# No team, no signing settings, no profiles in the repo: build for the simulator, or set your own team locally in Xcode.
+name: ToravoCompanion
+options:
+  bundleIdPrefix: de.toravo
+  deploymentTarget:
+    iOS: "27.0"
+  developmentLanguage: en
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: ""
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+targets:
+  ToravoCompanion:
+    type: application
+    platform: iOS
+    sources:
+      - path: ToravoCompanion
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: de.toravo.companion
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_FILE: ToravoCompanion/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        LOCALIZATION_PREFERS_STRING_CATALOGS: NO
+  ToravoCompanionTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: ToravoCompanionTests
+    dependencies:
+      - target: ToravoCompanion
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: de.toravo.companion.tests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/ToravoCompanion.app/ToravoCompanion"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+  ToravoCompanionUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: ToravoCompanionUITests
+    dependencies:
+      - target: ToravoCompanion
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: de.toravo.companion.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: ToravoCompanion
+schemes:
+  ToravoCompanion:
+    build:
+      targets:
+        ToravoCompanion: all
+        ToravoCompanionTests: [test]
+    test:
+      targets:
+        - ToravoCompanionTests
+  Demo:
+    build:
+      targets:
+        ToravoCompanion: all
+        ToravoCompanionUITests: [test]
+    test:
+      targets:
+        - ToravoCompanionUITests

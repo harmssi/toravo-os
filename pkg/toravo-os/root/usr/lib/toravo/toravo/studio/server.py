@@ -188,6 +188,9 @@ class H(BaseHTTPRequestHandler):
             return self.send_error(404)
         if p == '/api/lang':
             return self.send_json({'lang': theme.lang()})
+        if p.startswith('/api/companion'):  # 15.10.2026: Connect phone (Toravo Companion) – all logic in toravo.companion.panel
+            from ..companion import panel
+            return panel.handle(self, 'GET', p)
         if p in ('/', '/index.html'):  # 14.10.2026: UI language follows the session locale (German for de_*, else English)
             with open(os.path.join(STATIC, 'index.html'), encoding='utf-8') as f:
                 b = f.read().replace('<html lang="de">', f'<html lang="{theme.lang()}">').encode()
@@ -231,6 +234,9 @@ class H(BaseHTTPRequestHandler):
             else:
                 os.remove(queue._path(jid))
             return self.send_json({'ok': True})
+        if p.startswith('/api/companion'):  # 15.10.2026: Connect phone – behind the X-Toravo check above, Studio stays 127.0.0.1
+            from ..companion import panel
+            return panel.handle(self, 'POST', p, data)
         if p == '/api/plan':
             return self.send_json(agent.readiness(agent.plan(data.get('text', ''))))
         if p == '/api/plan/run':

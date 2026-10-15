@@ -21,7 +21,7 @@ cmd=${1:-}; shift || true
 
 sync_src() {
     ssh "$HOST" "mkdir -p $W/src"
-    rsync -a --delete --exclude screenshots --exclude content --exclude .DS_Store --exclude '__pycache__' --exclude '*.iso' \
+    rsync -a --delete --exclude screenshots --exclude content --exclude apps --exclude .DS_Store --exclude '__pycache__' --exclude '*.iso' \
         ./ "$HOST:$W/src/toravo-os/"
 }
 

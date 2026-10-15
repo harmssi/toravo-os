@@ -1,0 +1,4 @@
+#!/bin/bash
+# Toravo OS: companion (phone access) – status | pair | devices | revoke <id> | on | off
+export PYTHONPATH=/usr/lib/toravo${PYTHONPATH:+:$PYTHONPATH}
+exec python3 -m toravo.companion.cli "$@"

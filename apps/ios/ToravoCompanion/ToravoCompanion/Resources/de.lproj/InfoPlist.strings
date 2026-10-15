@@ -1,0 +1,3 @@
+"NSLocalNetworkUsageDescription" = "Toravo verbindet sich direkt mit deinem Toravo-OS-Computer in deinem eigenen Netzwerk. Nichts geht über das Internet.";
+"NSCameraUsageDescription" = "Zum Scannen des Kopplungs-QR-Codes aus Toravo Studio auf deinem Computer.";
+"NSPhotoLibraryAddUsageDescription" = "Um fertige Shorts, Videos und Thumbnails in deinen Fotos zu sichern, damit du sie posten kannst.";

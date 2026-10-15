@@ -1,0 +1,14 @@
+[Unit]
+Description=Toravo Companion (iPhone-App im lokalen Netz, HTTPS :8891)
+After=network.target
+
+[Service]
+Type=simple
+Environment=PYTHONPATH=/usr/lib/toravo
+ExecStart=/usr/bin/python3 -m toravo.companion.server
+Restart=on-failure
+RestartSec=5
+Nice=5
+
+[Install]
+WantedBy=default.target
